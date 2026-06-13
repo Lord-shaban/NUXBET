@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NUXBET Admin | لوحة التحكم</title>
+  <link rel="stylesheet" href="css/style.css?v=4">
+  <style>
+    .adm-wrap { max-width: 800px; margin: 0 auto; padding: 20px 16px 60px; }
+    .adm-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .adm-hdr h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .adm-hdr h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .adm-back { color: var(--green); font-size: 0.82rem; font-weight: 600; text-decoration: none; padding: 6px 16px; border: 1px solid rgba(0,255,135,0.2); border-radius: 20px; transition: all 0.2s; }
+    .adm-back:hover { background: rgba(0,255,135,0.08); }
+
+    .adm-section { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .adm-section-title { font-size: 0.85rem; font-weight: 700; color: var(--pl-violet); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .adm-section-title .icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 0.75rem; font-weight: 900; }
+
+    .match-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 6px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border-dim); flex-wrap: wrap; }
+    .match-row .group-tag { font-size: 0.65rem; font-weight: 700; color: var(--pl-magenta); background: rgba(233,0,82,0.08); padding: 2px 8px; border-radius: 10px; }
+    .match-row .flag-sm { width: 24px; height: 18px; border-radius: 3px; object-fit: cover; }
+    .match-row .team-names { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--text-body); min-width: 120px; }
+    .match-row .date-tag { font-size: 0.7rem; color: var(--text-dim); }
+    .score-box { display: flex; align-items: center; gap: 4px; }
+    .score-box input { width: 44px; height: 36px; text-align: center; font-size: 1rem; font-weight: 700; color: var(--text-primary); background: var(--bg-input); border: 1.5px solid var(--border-base); border-radius: 8px; }
+    .score-box input:focus { border-color: var(--green); box-shadow: 0 0 8px rgba(0,255,135,0.1); }
+    .score-box .dash { color: var(--text-dim); font-weight: 700; font-size: 0.9rem; }
+
+    .rq-section { background: linear-gradient(135deg, rgba(150,60,255,0.06), rgba(233,0,82,0.03)); }
+    .rq-input-field { width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1.5px solid rgba(150,60,255,0.15); border-radius: 10px; color: var(--text-primary); font-size: 0.88rem; margin-top: 6px; }
+    .rq-input-field:focus { border-color: var(--pl-violet); box-shadow: 0 0 10px rgba(150,60,255,0.08); }
+
+    .answers-list { margin-top: 16px; }
+    .answer-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 6px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border-dim); flex-wrap: wrap; }
+    .answer-row .player-name { font-size: 0.82rem; font-weight: 600; color: var(--text-body); min-width: 100px; flex: 1; }
+    .answer-row .player-answer { font-size: 0.85rem; color: var(--text-primary); font-weight: 500; flex: 2; min-width: 100px; }
+    .answer-row .review-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .review-btn { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 0.85rem; font-weight: 900; cursor: pointer; border: 1.5px solid var(--border-dim); background: var(--bg-input); color: var(--text-dim); transition: all 0.2s; }
+    .review-btn:hover { transform: scale(1.1); }
+    .review-btn.correct-active { background: rgba(0,255,135,0.15); border-color: var(--green); color: var(--green); }
+    .review-btn.wrong-active { background: rgba(233,0,82,0.15); border-color: var(--pl-magenta); color: var(--pl-magenta); }
+    .no-answers { text-align: center; padding: 20px; color: var(--text-dim); font-size: 0.82rem; }
+
+    .save-btn { display: block; width: 100%; padding: 14px; margin-top: 20px; background: var(--grad-green); color: var(--pl-purple); font-size: 0.95rem; font-weight: 700; border-radius: 50px; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(0,255,135,0.2); transition: all 0.3s; }
+    .save-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,255,135,0.3); }
+    .save-btn:disabled { opacity: 0.5; cursor: wait; transform: none; }
+
+    @media (max-width: 600px) {
+      .match-row { padding: 10px; gap: 6px; }
+      .match-row .team-names { font-size: 0.75rem; min-width: 80px; }
+      .score-box input { width: 38px; height: 32px; font-size: 0.9rem; }
+      .answer-row { padding: 8px 10px; }
+      .adm-section { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div class="auth-overlay" id="admin-login-overlay">
+    <div class="auth-card" style="max-width:360px">
+      <div class="auth-logo">
+        <div class="logo-icon-lg">A</div>
+        <span class="logo-text">ADMIN</span>
+      </div>
+      <p class="auth-tagline">لوحة تحكم الأدمن</p>
+      <form class="auth-form" onsubmit="return false">
+        <div class="form-group">
+          <label>كلمة المرور</label>
+          <input type="password" id="adm-pass" placeholder="••••••••" required dir="ltr">
+        </div>
+        <div class="auth-error" id="adm-error"></div>
+        <button type="submit" class="auth-btn" id="adm-btn" style="background:var(--grad-brand);color:#fff">دخول</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="adm-wrap" id="admin-app" style="display:none">
+    <div class="adm-hdr">
+      <h1><span class="dot"></span> لوحة تحكم NUXBET</h1>
+      <a href="index.html" class="adm-back">العودة للموقع</a>
+    </div>
+
+    <div class="md-tabs" id="admin-tabs"></div>
+
+    <!-- Match Results -->
+    <div class="adm-section" id="results-section">
+      <div class="adm-section-title">
+        <span class="icon" style="background:rgba(0,255,135,0.1);color:var(--green)">N</span>
+        نتائج المباريات
+      </div>
+      <div id="admin-matches"></div>
+    </div>
+
+    <!-- Round Question -->
+    <div class="adm-section rq-section">
+      <div class="adm-section-title">
+        <span class="icon" style="background:rgba(150,60,255,0.1);color:var(--pl-violet)">?</span>
+        سؤال الجولة (3 نقاط)
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px">نص السؤال</label>
+        <input type="text" id="rq-question-input" class="rq-input-field" placeholder="مثال: من سيسجل أكثر أهداف في الجولة؟" dir="rtl">
+      </div>
+      <div class="answers-list" id="rq-answers-list">
+        <div class="no-answers">لا توجد إجابات بعد</div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="admin-save">حفظ الكل</button>
+    <div class="toast" id="admin-toast"><span class="toast-icon toast-success" id="admin-toast-ico"></span><span id="admin-toast-msg"></span></div>
+  </div>
+
+  <script src="js/data.js?v=4"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+    import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCP098hkWvZ9wErY9E8m8XVw2mav0cYyBM",
+      authDomain: "nuxbet-1014c.firebaseapp.com",
+      projectId: "nuxbet-1014c",
+      storageBucket: "nuxbet-1014c.firebasestorage.app",
+      messagingSenderId: "753459642708",
+      appId: "1:753459642708:web:0440a58a2eced6173088c1"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let activeMD = 1;
+    const ADMIN_PASS = 'lord';
+
+    // Store review decisions: { odUserId: true/false }
+    let reviewDecisions = {};
+
+    function adminToast(msg, type='success') {
+      const t = document.getElementById('admin-toast');
+      document.getElementById('admin-toast-msg').textContent = msg;
+      document.getElementById('admin-toast-ico').className = 'toast-icon toast-' + type;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // LOGIN
+    document.getElementById('adm-btn').addEventListener('click', () => {
+      if (document.getElementById('adm-pass').value === ADMIN_PASS) {
+        document.getElementById('admin-login-overlay').style.display = 'none';
+        document.getElementById('admin-app').style.display = 'block';
+        renderTabs(); renderMatches(activeMD);
+      } else {
+        document.getElementById('adm-error').textContent = 'كلمة المرور غلط';
+      }
+    });
+    document.getElementById('adm-pass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('adm-btn').click();
+    });
+
+    // TABS
+    function renderTabs() {
+      const el = document.getElementById('admin-tabs');
+      el.innerHTML = Object.keys(MATCHDAY_INFO).map(md =>
+        `<button class="md-tab ${+md === activeMD ? 'active' : ''}" data-md="${md}">${MATCHDAY_INFO[md].name}</button>`
+      ).join('');
+      el.querySelectorAll('.md-tab').forEach(b => {
+        b.addEventListener('click', () => { activeMD = +b.dataset.md; renderTabs(); renderMatches(activeMD); });
+      });
+    }
+
+    // RENDER MATCHES + ROUND QUESTION
+    async function renderMatches(md) {
+      reviewDecisions = {};
+      const el = document.getElementById('admin-matches');
+      const matches = MATCHES[md] || [];
+      let saved = {};
+      try {
+        const snap = await getDoc(doc(db, 'results', `md${md}`));
+        if (snap.exists()) saved = snap.data().matches || {};
+      } catch(e) { console.error(e); }
+
+      el.innerHTML = matches.map(m => {
+        const home = TEAMS[m.home], away = TEAMS[m.away];
+        const r = saved[m.id] || m.result || {};
+        return `<div class="match-row">
+          <span class="group-tag">${m.group}</span>
+          <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
+          <span class="team-names">${home.name} vs ${away.name}</span>
+          <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
+          <span class="date-tag">${formatMatchDate(m.date)}</span>
+          <div class="score-box">
+            <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-">
+            <span class="dash">-</span>
+            <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-">
+          </div>
+        </div>`;
+      }).join('');
+
+      // Load round question
+      try {
+        const rqSnap = await getDoc(doc(db, 'roundQuestions', `md${md}`));
+        if (rqSnap.exists()) {
+          const rqData = rqSnap.data();
+          document.getElementById('rq-question-input').value = rqData.question || '';
+          // Load saved review decisions
+          if (rqData.reviews) reviewDecisions = { ...rqData.reviews };
+        } else {
+          document.getElementById('rq-question-input').value = '';
+        }
+      } catch(e) {
+        document.getElementById('rq-question-input').value = '';
+      }
+
+      // Load all player answers for this matchday
+      await loadPlayerAnswers(md);
+    }
+
+    // LOAD PLAYER ANSWERS FOR REVIEW
+    async function loadPlayerAnswers(md) {
+      const listEl = document.getElementById('rq-answers-list');
+      const allUsers = {};
+      const answers = [];
+
+      try {
+        // Get all users
+        const usersSnap = await getDocs(collection(db, 'users'));
+        usersSnap.forEach(d => { allUsers[d.id] = d.data(); });
+
+        // Get all predictions for this matchday
+        const predsSnap = await getDocs(collection(db, 'predictions'));
+        predsSnap.forEach(d => {
+          const data = d.data();
+          if (data.matchday === md && data.roundAnswer) {
+            const user = allUsers[data.userId];
+            answers.push({
+              odId: data.userId,
+              name: user?.displayName || 'مجهول',
+              answer: data.roundAnswer,
+              reviewed: reviewDecisions[data.userId]
+            });
+          }
+        });
+      } catch(e) { console.error(e); }
+
+      if (answers.length === 0) {
+        listEl.innerHTML = '<div class="no-answers">لا توجد إجابات بعد</div>';
+        return;
+      }
+
+      listEl.innerHTML = '<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px;font-weight:600">إجابات اللاعبين — راجعها يدوياً:</div>' +
+        answers.map(a => {
+          const correctCls = reviewDecisions[a.odId] === true ? 'correct-active' : '';
+          const wrongCls = reviewDecisions[a.odId] === false ? 'wrong-active' : '';
+          return `<div class="answer-row">
+            <span class="player-name">${a.name}</span>
+            <span class="player-answer">"${a.answer}"</span>
+            <div class="review-btns">
+              <button class="review-btn ${correctCls}" data-uid="${a.odId}" data-action="correct" title="صح">&#10003;</button>
+              <button class="review-btn ${wrongCls}" data-uid="${a.odId}" data-action="wrong" title="خطأ">&#10007;</button>
+            </div>
+          </div>`;
+        }).join('');
+
+      // Attach review button listeners
+      listEl.querySelectorAll('.review-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const uid = btn.dataset.uid;
+          const action = btn.dataset.action;
+          const row = btn.closest('.answer-row');
+          row.querySelectorAll('.review-btn').forEach(b => b.classList.remove('correct-active', 'wrong-active'));
+          if (action === 'correct') {
+            btn.classList.add('correct-active');
+            reviewDecisions[uid] = true;
+          } else {
+            btn.classList.add('wrong-active');
+            reviewDecisions[uid] = false;
+          }
+        });
+      });
+    }
+
+    // SAVE ALL
+    document.getElementById('admin-save').addEventListener('click', async () => {
+      const matches = MATCHES[activeMD] || [];
+      const results = {};
+      matches.forEach(m => {
+        const hEl = document.getElementById('rh-' + m.id);
+        const aEl = document.getElementById('ra-' + m.id);
+        if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
+          results[m.id] = { home: +hEl.value, away: +aEl.value };
+        }
+      });
+
+      const rqQuestion = document.getElementById('rq-question-input').value.trim();
+
+      const btn = document.getElementById('admin-save');
+      btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+      try {
+        const savedItems = [];
+
+        // Save results
+        if (Object.keys(results).length > 0) {
+          await setDoc(doc(db, 'results', `md${activeMD}`), { matches: results, updatedAt: serverTimestamp() });
+          savedItems.push(`${Object.keys(results).length} نتيجة`);
+        }
+
+        // Save round question + manual reviews
+        if (rqQuestion) {
+          const rqDoc = { question: rqQuestion, reviews: reviewDecisions, updatedAt: serverTimestamp() };
+          await setDoc(doc(db, 'roundQuestions', `md${activeMD}`), rqDoc);
+          savedItems.push('سؤال الجولة');
+        }
+
+        if (savedItems.length > 0) {
+          adminToast(`تم حفظ ${savedItems.join(' + ')} بنجاح!`);
+        } else {
+          adminToast('لا يوجد شيء للحفظ', 'warn');
+        }
+      } catch(e) { console.error(e); adminToast('حصل خطأ في الحفظ', 'error'); }
+      btn.disabled = false; btn.textContent = 'حفظ الكل';
+    });
+  </script>
+</body>
+</html>

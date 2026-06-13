@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NUXBET - توقعات كأس العالم 2026. سجّل وتوقع نتائج المباريات وتنافس مع أصدقائك">
+  <title>NUXBET | توقعات كأس العالم 2026</title>
+  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23E90052%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 font-size=%2250%22 font-weight=%22900%22 fill=%22white%22>N</text></svg>">
+</head>
+<body>
+
+  <!-- ========== AUTH OVERLAY ========== -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon-lg">N</div>
+        <span class="logo-text">NUXBET</span>
+      </div>
+      <p class="auth-tagline">توقعات كأس العالم 2026</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">تسجيل الدخول</button>
+        <button class="auth-tab" id="tab-register" onclick="showAuthTab('register')">حساب جديد</button>
+      </div>
+
+      <!-- Login Form -->
+      <form class="auth-form" id="form-login" onsubmit="return false">
+        <div class="form-group">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="login-email" placeholder="your@email.com" required dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور</label>
+          <input type="password" id="login-pass" placeholder="••••••••" required dir="ltr">
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <button type="submit" class="auth-btn" id="login-btn">دخول</button>
+      </form>
+
+      <!-- Register Form -->
+      <form class="auth-form" id="form-register" style="display:none" onsubmit="return false">
+        <div class="form-group">
+          <label>اسمك</label>
+          <input type="text" id="reg-name" placeholder="مثال: أحمد محمد" required>
+        </div>
+        <div class="form-group">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="reg-email" placeholder="your@email.com" required dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور (6 أحرف على الأقل)</label>
+          <input type="password" id="reg-pass" placeholder="••••••••" required minlength="6" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>اختر صورتك</label>
+          <div class="avatar-grid" id="avatar-grid"></div>
+        </div>
+        <div class="auth-error" id="reg-error"></div>
+        <button type="submit" class="auth-btn" id="reg-btn">إنشاء حساب</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== HEADER ========== -->
+  <header class="header" id="app-header" style="display:none">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">N</div>
+        <span class="logo-text">NUXBET</span>
+      </div>
+      <nav class="nav" id="main-nav">
+        <button class="nav-btn active" data-page="home">الرئيسية</button>
+        <button class="nav-btn" data-page="predictions">التوقعات</button>
+        <button class="nav-btn" data-page="league">الدوري</button>
+        <button class="nav-btn" data-page="cup">الكأس</button>
+      </nav>
+      <div class="header-user" id="header-user">
+        <div class="header-profile-link" id="header-profile-link" style="display:flex;align-items:center;gap:6px;cursor:pointer" title="بروفايلك">
+          <img class="user-av-img" id="user-av-img" src="" alt="" style="display:none">
+          <span class="user-av" id="user-av" style="display:none"></span>
+          <span class="user-name" id="user-name">اللاعب</span>
+        </div>
+        <button class="logout-btn" id="logout-btn" title="خروج">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main" id="app-main" style="display:none">
+
+    <!-- ====== HOME — REDESIGNED ====== -->
+    <section class="page active" id="page-home">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-badge">FIFA WORLD CUP 2026</div>
+          <h1>توقع نتائج<br><span class="accent">كأس العالم</span></h1>
+          <p class="hero-sub">نافس أصدقائك في توقع نتائج المباريات واكسب النقاط. اختر مباراتك الذهبية وضاعف نقاطك!</p>
+          <div class="hero-actions">
+            <button class="hero-cta" id="hero-start-btn">ابدأ التوقع الآن</button>
+            <button class="hero-cta-outline" id="hero-howto-btn">كيف تلعب؟</button>
+          </div>
+        </div>
+        <div class="hero-decoration">
+          <div class="hero-orb hero-orb-1"></div>
+          <div class="hero-orb hero-orb-2"></div>
+          <div class="hero-orb hero-orb-3"></div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-row" id="home-stats">
+        <div class="stat-chip ani">
+          <div class="stat-icon players-icon"></div>
+          <div class="val" id="stat-players">0</div>
+          <div class="lbl">لاعب مسجل</div>
+        </div>
+        <div class="stat-chip ani">
+          <div class="stat-icon teams-icon"></div>
+          <div class="val">48</div>
+          <div class="lbl">منتخب</div>
+        </div>
+        <div class="stat-chip ani">
+          <div class="stat-icon matches-icon"></div>
+          <div class="val">72</div>
+          <div class="lbl">مباراة مجموعات</div>
+        </div>
+        <div class="stat-chip ani">
+          <div class="stat-icon golden-icon"></div>
+          <div class="val">×2</div>
+          <div class="lbl">مباراة ذهبية</div>
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div class="sec-title"><span class="bar"></span> الموعد النهائي للتوقع</div>
+      <div class="countdown-wrap">
+        <div class="cd-box"><div class="cd-val" id="cd-d">00</div><div class="cd-lbl">يوم</div></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-box"><div class="cd-val" id="cd-h">00</div><div class="cd-lbl">ساعة</div></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-box"><div class="cd-val" id="cd-m">00</div><div class="cd-lbl">دقيقة</div></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-box"><div class="cd-val" id="cd-s">00</div><div class="cd-lbl">ثانية</div></div>
+      </div>
+
+      <!-- HOW TO PLAY — integrated -->
+      <div class="sec-title" style="margin-top:40px" id="howto-section"><span class="bar"></span> كيف تلعب؟</div>
+      <div class="howto-cards">
+        <div class="howto-card ani">
+          <div class="howto-step">1</div>
+          <h3>توقّع النتائج</h3>
+          <p>كل جولة تتوقع نتيجة كل مباراة (عدد أهداف كل فريق). لازم تحفظ توقعاتك قبل الموعد النهائي!</p>
+        </div>
+        <div class="howto-card gold-card ani">
+          <div class="howto-step gold">★</div>
+          <h3>المباراة الذهبية</h3>
+          <p>كل جولة <strong>لازم</strong> تختار مباراة واحدة كمباراة ذهبية. نقاط المباراة الذهبية <strong>تتضاعف ×2</strong>!</p>
+        </div>
+        <div class="howto-card ani">
+          <div class="howto-step">3</div>
+          <h3>تنافس!</h3>
+          <p>اجمع أكبر عدد من النقاط لتصعد في الدوري. في الكأس، تواجه لاعب عشوائي كل جولة هيد تو هيد!</p>
+        </div>
+      </div>
+
+      <!-- Points System -->
+      <div class="sec-title" style="margin-top:32px"><span class="bar"></span> نظام النقاط</div>
+      <div class="points-table">
+        <div class="pt-row pt-header"><div>الحالة</div><div>الوصف</div><div>النقاط</div></div>
+        <div class="pt-row exact"><div>توقع دقيق</div><div>توقعت النتيجة بالظبط (مثال: توقعت 2-1 والنتيجة 2-1)</div><div class="pt-val">5</div></div>
+        <div class="pt-row diff"><div>فرق أهداف صحيح</div><div>توقعت نفس فرق الأهداف (مثال: توقعت 3-1 والنتيجة 2-0 — فرق 2)</div><div class="pt-val">3</div></div>
+        <div class="pt-row correct"><div>اتجاه صحيح</div><div>توقعت الفائز/التعادل صح بس النتيجة وفرق الأهداف غلط</div><div class="pt-val">1</div></div>
+        <div class="pt-row bonus"><div>بونص توقع فريد</div><div>لو أنت الوحيد اللي توقعت فوز طرف ومحدش غيرك توقعه</div><div class="pt-val">+3</div></div>
+        <div class="pt-row wrong"><div>توقع خاطئ</div><div>توقعت غلط خالص (مثال: توقعت 2-0 والنتيجة 0-1)</div><div class="pt-val">0</div></div>
+        <div class="pt-row penalty"><div>عقوبة 6 أخطاء</div><div>لو غلطت في 6 مباريات أو أكتر في جولة واحدة</div><div class="pt-val">-2</div></div>
+        <div class="pt-row golden"><div>مباراة ذهبية</div><div>نقاط المباراة اللي اخترتها كذهبية <strong>تتضاعف ×2</strong></div><div class="pt-val">×2</div></div>
+        <div class="pt-row question"><div>سؤال الجولة</div><div>الأدمن يحط سؤال كل جولة — الإجابة الصح بتديك نقاط إضافية</div><div class="pt-val">3</div></div>
+      </div>
+      <div class="howto-example ani">
+        <h4>مثال:</h4>
+        <p>توقعت مباراة البرازيل ضد المغرب بنتيجة <strong>2-1</strong> واخترتها كمباراة ذهبية</p>
+        <p>النتيجة الفعلية: <strong>2-1</strong> = توقع دقيق = <strong>5 نقاط × 2 = 10 نقاط!</strong></p>
+      </div>
+
+      <!-- Groups -->
+      <div class="sec-title" style="margin-top:40px"><span class="bar"></span> مجموعات كأس العالم 2026</div>
+      <div class="groups-grid" id="groups-grid"></div>
+
+    </section>
+
+    <!-- PREDICTIONS -->
+    <section class="page" id="page-predictions">
+      <div class="sec-title"><span class="bar"></span> توقعاتك</div>
+      <div class="golden-info">
+        <span class="golden-info-star">★</span> اضغط على النجمة بجوار أي مباراة لاختيارها كمباراة ذهبية (إجباري — نقاطها ×2)
+      </div>
+      <div class="md-tabs" id="md-tabs"></div>
+      <div class="md-strip" id="md-strip">
+        <span><span id="md-range"></span></span>
+        <div class="sep"></div>
+        <span>الموعد النهائي: <span class="deadline" id="md-deadline">--</span></span>
+      </div>
+      <div class="matches-grid" id="matches-grid"></div>
+      <!-- Round Question -->
+      <div class="round-question-card" id="round-question-card" style="display:none">
+        <div class="rq-header">سؤال الجولة (3 نقاط)</div>
+        <div class="rq-text" id="rq-text"></div>
+        <input type="text" class="rq-input" id="rq-answer" placeholder="اكتب إجابتك هنا...">
+      </div>
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submit-btn">حفظ التوقعات</button>
+      </div>
+      <div class="loading-overlay" id="pred-loading" style="display:none">
+        <div class="spinner"></div>
+        <span>جاري التحميل...</span>
+      </div>
+    </section>
+
+    <!-- LEAGUE -->
+    <section class="page" id="page-league">
+      <div class="sec-title"><span class="bar"></span> دوري التوقعات</div>
+      <div class="lg-controls">
+        <div class="lg-pills">
+          <button class="lg-pill active" data-f="overall">الإجمالي</button>
+          <button class="lg-pill" data-f="weekly">الجولة</button>
+        </div>
+        <div class="lg-search">
+          <svg class="search-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="ابحث عن لاعب..." id="lg-search">
+        </div>
+      </div>
+      <div class="lg-table">
+        <div class="lg-hdr">
+          <div>#</div><div>اللاعب</div><div class="hide-m">دقيق</div><div class="hide-m">فرق</div><div class="hide-m">صحيح</div><div>م</div><div>النقاط</div>
+        </div>
+        <div id="lg-rows"></div>
+      </div>
+      <div class="loading-overlay" id="league-loading" style="display:none">
+        <div class="spinner"></div><span>جاري حساب الترتيب...</span>
+      </div>
+    </section>
+
+    <!-- CUP -->
+    <section class="page" id="page-cup">
+      <div class="cup-intro">
+        <h2>كأس المواجهات</h2>
+        <p>كل جولة يتم تحديد مواجهات عشوائية هيد تو هيد. صاحب النقاط الأعلى في الجولة يفوز بالمواجهة!</p>
+      </div>
+      <div id="cup-content"></div>
+      <div class="loading-overlay" id="cup-loading" style="display:none">
+        <div class="spinner"></div><span>جاري التحميل...</span>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="page" id="page-profile">
+      <div id="profile-content">
+        <div class="loading-overlay" id="profile-loading" style="display:none">
+          <div class="spinner"></div><span>جاري تحميل البروفايل...</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" id="app-footer" style="display:none">
+    <p>NUXBET — كأس العالم 2026</p>
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><span class="toast-icon" id="toast-ico"></span><span id="toast-msg"></span></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js?v=8"></script>
+  <script type="module" src="js/main.js?v=8"></script>
+</body>
+</html>
