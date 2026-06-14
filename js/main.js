@@ -41,14 +41,14 @@ function avatarHTML(url, cls = 'av-img') {
   return `<span class="${cls} av-placeholder"></span>`;
 }
 
-// Returns actual kickoff Date for a match using date+time
+// Returns actual kickoff Date for a match using date+time (Mecca UTC+3)
 function matchKickoff(match) {
-  return new Date(`${match.date}T${match.time}:00`);
+  return new Date(`${match.date}T${match.time}:00+03:00`);
 }
 
 // Check if match has started based on kickoff time
 function isMatchStarted(match) {
-  return new Date() >= matchKickoff(match);
+  return Date.now() >= matchKickoff(match).getTime();
 }
 
 // ============================================================
