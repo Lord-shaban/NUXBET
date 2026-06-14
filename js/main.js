@@ -889,6 +889,7 @@ async function renderCup() {
 async function renderProfile(uid) {
   const loading = document.getElementById('profile-loading');
   const container = document.getElementById('profile-content');
+  container.innerHTML = '';
   loading.style.display = 'flex';
   await loadAllUsers();
   await loadResults();
