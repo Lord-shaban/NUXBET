@@ -82,6 +82,7 @@ body {
   direction: rtl; min-height: 100vh; overflow-x: hidden;
   line-height: 1.6; font-weight: 400; letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  width: 100%; max-width: 100vw;
 }
 body::before {
   content: ''; position: fixed; inset: 0;
@@ -147,10 +148,12 @@ input, select { font-family: inherit; outline: none; }
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border-bottom: 1px solid var(--border-dim);
+  overflow-x: hidden; width: 100%;
 }
 .header-inner {
   max-width: 1100px; margin: 0 auto; padding: 0 24px;
   display: flex; align-items: center; height: 60px; gap: 20px;
+  overflow: hidden; width: 100%;
 }
 .logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .logo-icon {
@@ -170,7 +173,10 @@ input, select { font-family: inherit; outline: none; }
   display: flex; gap: 2px; margin: 0 auto;
   background: rgba(28, 6, 54, 0.8); padding: 4px; border-radius: var(--r-pill);
   border: 1px solid var(--border-dim);
+  flex-shrink: 1; min-width: 0; overflow-x: auto;
+  -ms-overflow-style: none; scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 .nav-btn {
   padding: 7px 22px; border-radius: var(--r-pill);
   font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
@@ -989,34 +995,153 @@ input, select { font-family: inherit; outline: none; }
    RESPONSIVE
    ============================================================ */
 @media (max-width: 900px) {
-  .header-inner { padding: 0 16px; gap: 12px; }
-  .nav-btn { padding: 7px 14px; font-size: 0.75rem; }
+  .header-inner { padding: 0 12px; gap: 10px; }
+  .nav-btn { padding: 7px 12px; font-size: 0.72rem; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .hero h1 { font-size: 2.2rem; }
   .hero { padding: 44px 24px 40px; }
   .lg-hdr, .lg-row { grid-template-columns: 40px 1fr 40px 40px 40px 40px 55px; padding: 8px 10px; }
   .hide-m { display: none; }
+  .user-name { max-width: 70px; font-size: 0.72rem; }
 }
 
 @media (max-width: 600px) {
-  .header-inner { height: 52px; gap: 8px; }
-  .logo-text { font-size: 1rem; letter-spacing: 2px; }
-  .logo-icon { width: 30px; height: 30px; font-size: 12px; }
-  .nav-btn { padding: 6px 12px; font-size: 0.7rem; }
-  .main { padding: 16px 14px 56px; }
-  .hero { padding: 36px 18px 32px; }
-  .hero h1 { font-size: 1.7rem; }
-  .hero-sub { font-size: 0.85rem; }
-  .hero-cta { padding: 12px 28px; font-size: 0.85rem; }
-  .hero-cta-outline { padding: 12px 22px; font-size: 0.82rem; }
-  .matches-grid { grid-template-columns: 1fr; }
-  .lg-hdr, .lg-row { grid-template-columns: 35px 1fr 35px 55px; font-size: 0.75rem; }
-  .auth-card { padding: 28px 20px; border-radius: 16px; }
-  .stat-chip { padding: 14px 8px; }
-  .stat-chip .val { font-size: 1.3rem; }
-  .stat-chip .lbl { font-size: 0.62rem; }
-  .countdown-wrap { gap: 8px; padding: 14px; }
-  .cd-val { width: 42px; height: 42px; font-size: 1.1rem; }
+  /* Header - prevent overflow */
+  .header-inner { height: 48px; gap: 6px; padding: 0 10px; }
+  .logo { gap: 6px; }
+  .logo-text { font-size: 0.85rem; letter-spacing: 1.5px; }
+  .logo-icon { width: 28px; height: 28px; font-size: 11px; }
+  .nav { padding: 3px; gap: 1px; }
+  .nav-btn { padding: 5px 9px; font-size: 0.65rem; }
+  .header-user { gap: 4px; }
+  .user-name { display: none; }
+  .user-av-img { width: 26px; height: 26px; }
+  .user-av { width: 26px; height: 26px; font-size: 0.85rem; }
+  .logout-btn { padding: 4px; }
+  .logout-btn svg { width: 14px; height: 14px; }
+
+  /* Main content */
+  .main { padding: 14px 10px 56px; }
+
+  /* Hero */
+  .hero { padding: 28px 14px 24px; margin-bottom: 18px; }
+  .hero h1 { font-size: 1.5rem; }
+  .hero-sub { font-size: 0.8rem; margin-bottom: 20px; }
+  .hero-badge { font-size: 0.6rem; padding: 5px 14px; letter-spacing: 2px; margin-bottom: 16px; }
+  .hero-actions { gap: 8px; }
+  .hero-cta { padding: 11px 24px; font-size: 0.82rem; }
+  .hero-cta-outline { padding: 11px 18px; font-size: 0.78rem; }
+
+  /* Stats */
+  .stats-row { gap: 8px; margin-bottom: 20px; }
+  .stat-chip { padding: 12px 6px; }
+  .stat-chip .val { font-size: 1.2rem; }
+  .stat-chip .lbl { font-size: 0.58rem; }
+  .stat-icon { width: 30px; height: 30px; margin-bottom: 6px; }
+
+  /* Countdown */
+  .countdown-wrap { gap: 6px; padding: 12px 8px; margin-bottom: 20px; }
+  .cd-val { width: 40px; height: 40px; font-size: 1rem; }
+  .cd-lbl { font-size: 0.52rem; }
+  .cd-sep { font-size: 0.9rem; }
+
+  /* Groups */
+  .groups-grid { gap: 8px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .grp-hdr { padding: 7px 10px; font-size: 0.68rem; }
+  .grp-team { padding: 7px 10px; gap: 8px; }
+  .grp-team .name { font-size: 0.78rem; }
+  .flag-sm { width: 22px; height: 22px; }
+
+  /* Match cards */
+  .matches-grid { grid-template-columns: 1fr; gap: 10px; }
+  .m-card-top { padding: 5px 10px; font-size: 0.65rem; }
+  .m-card-body { padding: 14px 10px 10px; }
+  .flag-img { width: 38px; height: 38px; }
+  .m-team .name { font-size: 0.72rem; max-width: 70px; }
+  .m-score { font-size: 1.5rem; }
+  .m-pred { gap: 6px; padding-top: 10px; margin-top: 10px; }
+  .pred-input { width: 40px; height: 36px; font-size: 1rem; }
+  .m-pred label { font-size: 0.65rem; }
+
+  /* Matchday tabs */
+  .md-tabs { gap: 4px; }
+  .md-tab { padding: 6px 14px; font-size: 0.72rem; }
+  .md-strip { padding: 8px 12px; font-size: 0.72rem; gap: 10px; }
+
+  /* League */
+  .lg-controls { gap: 8px; }
+  .lg-pill { padding: 6px 14px; font-size: 0.72rem; }
+  .lg-search input { width: 140px; font-size: 0.72rem; padding: 6px 10px 6px 28px; }
+  .lg-search input:focus { width: 180px; }
+  .lg-hdr, .lg-row { grid-template-columns: 32px 1fr 32px 50px; font-size: 0.72rem; padding: 8px 8px; }
+  .rk-badge { width: 24px; height: 24px; font-size: 0.65rem; }
+  .pl-av, .pl-av-img { width: 28px; height: 28px; }
+  .pl-name { font-size: 0.78rem; }
+  .cell.pts { font-size: 0.85rem; }
+
+  /* Cup */
+  .cup-intro { padding: 18px 14px; margin-bottom: 18px; }
+  .cup-intro h2 { font-size: 1.2rem; }
+  .cup-grid { grid-template-columns: 1fr; gap: 8px; }
+  .cup-player { padding: 8px 10px; }
+  .cup-pl-info .nm { font-size: 0.75rem; }
+
+  /* How to play */
+  .howto-cards { gap: 8px; grid-template-columns: 1fr; }
+  .howto-card { padding: 20px 14px; }
+  .pt-row { grid-template-columns: 100px 1fr 55px; padding: 10px 12px; font-size: 0.75rem; }
+
+  /* Round question */
+  .round-question-card { padding: 14px 16px; margin-top: 14px; }
+  .rq-header { font-size: 0.82rem; }
+  .rq-text { font-size: 0.8rem; }
+  .rq-input { padding: 10px 12px; font-size: 0.82rem; }
+
+  /* Auth */
+  .auth-card { padding: 24px 16px; border-radius: 14px; }
+  .auth-overlay { padding: 14px; }
+  .logo-icon-lg { width: 44px; height: 44px; font-size: 1.3rem; }
+  .auth-tagline { font-size: 0.82rem; margin-bottom: 20px; }
+  .auth-tab { font-size: 0.78rem; padding: 8px 0; }
+  .form-group input { padding: 11px 14px; font-size: 0.85rem; }
+  .form-group label { font-size: 0.72rem; }
+  .auth-btn { padding: 12px; font-size: 0.88rem; }
+  .avatar-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+  /* Golden */
+  .golden-label { font-size: 0.65rem; padding: 4px 10px; }
+  .golden-info { padding: 8px 12px; font-size: 0.72rem; }
+
+  /* Submit */
+  .submit-btn { padding: 12px 36px; font-size: 0.88rem; }
+
+  /* Section title */
+  .sec-title { font-size: 0.92rem; margin-bottom: 14px; }
+
+  /* Toast */
+  .toast { font-size: 0.75rem; padding: 8px 16px; bottom: 70px; }
+
+  /* Footer */
+  .footer { padding: 18px 14px; }
+  .footer p { font-size: 0.65rem; }
+}
+
+@media (max-width: 380px) {
+  .header-inner { padding: 0 8px; gap: 4px; }
+  .logo-text { font-size: 0.75rem; letter-spacing: 1px; }
+  .logo-icon { width: 24px; height: 24px; font-size: 10px; }
+  .nav-btn { padding: 4px 7px; font-size: 0.6rem; }
+  .hero h1 { font-size: 1.3rem; }
+  .hero { padding: 22px 10px 20px; }
+  .hero-sub { font-size: 0.75rem; }
+  .hero-cta { padding: 10px 20px; font-size: 0.78rem; }
+  .main { padding: 10px 8px 50px; }
+  .stat-chip .val { font-size: 1.1rem; }
+  .countdown-wrap { padding: 10px 6px; }
+  .cd-val { width: 36px; height: 36px; font-size: 0.9rem; }
+  .m-card-body { padding: 10px 8px 8px; }
+  .flag-img { width: 34px; height: 34px; }
+  .pred-input { width: 36px; height: 32px; font-size: 0.9rem; }
 }
 
 /* Animation helper */
