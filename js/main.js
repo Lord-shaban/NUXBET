@@ -41,6 +41,16 @@ function avatarHTML(url, cls = 'av-img') {
   return `<span class="${cls} av-placeholder"></span>`;
 }
 
+// Returns actual kickoff Date for a match using date+time
+function matchKickoff(match) {
+  return new Date(`${match.date}T${match.time}:00`);
+}
+
+// Check if match has started based on kickoff time
+function isMatchStarted(match) {
+  return new Date() >= matchKickoff(match);
+}
+
 // ============================================================
 // TOAST
 // ============================================================
@@ -296,7 +306,7 @@ function renderTabs() {
     let locked = false;
     if (md > 1) {
       const prevMatches = MATCHES[md - 1] || [];
-      const allPrevStarted = prevMatches.every(m => new Date() > new Date(m.date));
+      const allPrevStarted = prevMatches.every(m => isMatchStarted(m));
       if (!allPrevStarted) locked = true;
     }
     const lockIcon = locked ? ' \u{1F512}' : '';
@@ -306,6 +316,8 @@ function renderTabs() {
     b.addEventListener('click', () => { activeMD = +b.dataset.md; renderPredictions(activeMD); });
   });
 }
+
+let showOnlyAvailable = false;
 
 async function renderPredictions(md) {
   renderTabs();
@@ -319,16 +331,36 @@ async function renderPredictions(md) {
 
   if (info) {
     document.getElementById('md-range').textContent = info.dateRange;
-    const now = new Date();
-    const upcomingCount = matches.filter(m => now < new Date(m.date)).length;
+    const upcomingCount = matches.filter(m => !isMatchStarted(m)).length;
+    const startedCount = matches.length - upcomingCount;
     const dlEl = document.getElementById('md-deadline');
     if (upcomingCount === 0) {
       dlEl.textContent = 'بدأت كل المباريات';
       dlEl.classList.add('expired');
     } else {
-      dlEl.textContent = `${upcomingCount} مباراة متاحة للتوقع`;
+      dlEl.textContent = `${upcomingCount} مباراة متاحة — ${startedCount} مقفلة`;
       dlEl.classList.remove('expired');
     }
+
+    // Filter toggle button
+    let filterWrap = document.getElementById('pred-filter-wrap');
+    if (!filterWrap) {
+      filterWrap = document.createElement('div');
+      filterWrap.id = 'pred-filter-wrap';
+      filterWrap.className = 'pred-filter-wrap';
+      const strip = document.getElementById('md-strip');
+      if (strip) strip.parentNode.insertBefore(filterWrap, strip.nextSibling);
+    }
+    filterWrap.innerHTML = `
+      <button class="pred-filter-btn ${showOnlyAvailable ? 'active' : ''}" id="pred-filter-btn">
+        ${showOnlyAvailable ? '\u{1F50D} عرض الكل' : '\u2705 المتاحة فقط (${upcomingCount})'}
+      </button>
+      <span class="pred-filter-info">${startedCount > 0 ? '\u{1F512} ' + startedCount + ' مباراة مقفلة' : ''}</span>
+    `;
+    document.getElementById('pred-filter-btn').addEventListener('click', () => {
+      showOnlyAvailable = !showOnlyAvailable;
+      renderPredictions(md);
+    });
   }
 
   let preds = {}, goldenMatch = null, savedRoundAnswer = '';
@@ -377,71 +409,92 @@ async function renderPredictions(md) {
 
   loading.style.display = 'none';
 
-  grid.innerHTML = matches.map(match => {
-    const home = TEAMS[match.home], away = TEAMS[match.away];
-    const result = getMatchResult(match, md);
-    const st = result ? 'played' : getMatchStatus(match);
-    const p = preds[match.id] || {};
-    const isGolden = goldenMatch === match.id;
+  // Filter matches if needed
+  const displayMatches = showOnlyAvailable ? matches.filter(m => !isMatchStarted(m)) : matches;
 
-    let statusTxt = st === 'played' ? 'انتهت' : st === 'live' ? 'مباشر' : match.time;
-    let centerHTML = '';
-    if (result) {
-      centerHTML = `<div class="m-score"><span>${result.home}</span><span class="dash">-</span><span>${result.away}</span></div>`;
-    } else {
-      centerHTML = `<div class="m-time">${match.time}</div><div class="m-vs">VS</div>`;
-    }
+  if (displayMatches.length === 0) {
+    grid.innerHTML = '<div class="empty-state">لا توجد مباريات متاحة للتوقع حالياً</div>';
+  } else {
+    grid.innerHTML = displayMatches.map(match => {
+      const home = TEAMS[match.home], away = TEAMS[match.away];
+      const result = getMatchResult(match, md);
+      const st = result ? 'played' : getMatchStatus(match);
+      const p = preds[match.id] || {};
+      const isGolden = goldenMatch === match.id;
+      const started = isMatchStarted(match);
 
-    let resultHTML = '';
-    if (result && p.h !== undefined && p.a !== undefined) {
-      let pts = calcPts(p, result);
-      if (isGolden) pts *= 2;
-      const level = calcPtsLevel(p, result);
-      if (level === 'exact') resultHTML = `<div class="m-result exact">توقع دقيق +${pts}</div>`;
-      else if (level === 'diff') resultHTML = `<div class="m-result diff">فرق أهداف صحيح +${pts}</div>`;
-      else if (level === 'correct') resultHTML = `<div class="m-result correct">اتجاه صحيح +${pts}</div>`;
-      else resultHTML = `<div class="m-result wrong">خطأ</div>`;
-    }
+      let statusTxt = '';
+      if (st === 'played') statusTxt = 'انتهت';
+      else if (st === 'live') statusTxt = 'مباشر';
+      else if (started) statusTxt = '\u{1F512} مقفلة';
+      else statusTxt = match.time;
 
-    const goldenCls = isGolden ? 'golden-active' : '';
-    const matchStarted = new Date() > new Date(match.date);
-    const disabledAttr = matchStarted ? 'disabled' : '';
+      let centerHTML = '';
+      if (result) {
+        centerHTML = `<div class="m-score"><span>${result.home}</span><span class="dash">-</span><span>${result.away}</span></div>`;
+      } else {
+        centerHTML = `<div class="m-time">${match.time}</div><div class="m-vs">VS</div>`;
+      }
 
-    return `
-      <div class="m-card ani ${goldenCls}" id="mcard-${match.id}">
-        <div class="m-card-top">
-          <span class="m-group-tag">المجموعة ${match.group}</span>
-          <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">\u2605</button>
-          <span class="m-date">${formatMatchDate(match.date)}</span>
-          <span class="m-status ${st}">${statusTxt}</span>
-        </div>
-        <div class="m-card-body">
-          <div class="m-fixture">
-            <div class="m-team">${flagImg(home)}<span class="name">${home.name}</span></div>
-            <div class="m-center">${centerHTML}</div>
-            <div class="m-team">${flagImg(away)}<span class="name">${away.name}</span></div>
+      let resultHTML = '';
+      if (result && p.h !== undefined && p.a !== undefined) {
+        let pts = calcPts(p, result);
+        if (isGolden) pts *= 2;
+        const level = calcPtsLevel(p, result);
+        if (level === 'exact') resultHTML = `<div class="m-result exact">توقع دقيق +${pts}</div>`;
+        else if (level === 'diff') resultHTML = `<div class="m-result diff">فرق أهداف صحيح +${pts}</div>`;
+        else if (level === 'correct') resultHTML = `<div class="m-result correct">اتجاه صحيح +${pts}</div>`;
+        else resultHTML = `<div class="m-result wrong">خطأ</div>`;
+      }
+
+      const goldenCls = isGolden ? 'golden-active' : '';
+      const lockedCls = (started && !result) ? 'm-locked' : '';
+      const disabledAttr = started ? 'disabled' : '';
+
+      // Show saved prediction for locked matches
+      let predDisplay = '';
+      if (started && p.h !== undefined && p.a !== undefined && !result) {
+        predDisplay = `<div class="m-pred-saved">توقعك: ${p.h} - ${p.a}</div>`;
+      }
+
+      return `
+        <div class="m-card ani ${goldenCls} ${lockedCls}" id="mcard-${match.id}">
+          <div class="m-card-top">
+            <span class="m-group-tag">المجموعة ${match.group}</span>
+            <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">\u2605</button>
+            <span class="m-date">${formatMatchDate(match.date)}</span>
+            <span class="m-status ${started && !result ? 'locked' : st}">${statusTxt}</span>
           </div>
-          <div class="m-pred">
-            <label>توقعك:</label>
-            <input type="number" class="pred-input" id="ph-${match.id}" min="0" max="20" placeholder="-"
-                   value="${p.h !== undefined ? p.h : ''}" ${disabledAttr}>
-            <span class="pred-dash">-</span>
-            <input type="number" class="pred-input" id="pa-${match.id}" min="0" max="20" placeholder="-"
-                   value="${p.a !== undefined ? p.a : ''}" ${disabledAttr}>
+          <div class="m-card-body">
+            ${started && !result ? '<div class="m-locked-overlay"><span class="m-locked-icon">\u{1F512}</span><span class="m-locked-text">تم إغلاق التوقعات</span></div>' : ''}
+            <div class="m-fixture">
+              <div class="m-team">${flagImg(home)}<span class="name">${home.name}</span></div>
+              <div class="m-center">${centerHTML}</div>
+              <div class="m-team">${flagImg(away)}<span class="name">${away.name}</span></div>
+            </div>
+            ${started ? '' : `<div class="m-pred">
+              <label>توقعك:</label>
+              <input type="number" class="pred-input" id="ph-${match.id}" min="0" max="20" placeholder="-"
+                     value="${p.h !== undefined ? p.h : ''}">
+              <span class="pred-dash">-</span>
+              <input type="number" class="pred-input" id="pa-${match.id}" min="0" max="20" placeholder="-"
+                     value="${p.a !== undefined ? p.a : ''}">
+            </div>`}
+            ${predDisplay}
+            ${isGolden ? '<div class="golden-label">\u2605 مباراة ذهبية \u2014 النقاط \u00d72</div>' : ''}
+            ${resultHTML}
           </div>
-          ${isGolden ? '<div class="golden-label">\u2605 مباراة ذهبية \u2014 النقاط \u00d72</div>' : ''}
-          ${resultHTML}
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
 
   // Golden star click handlers
   grid.querySelectorAll('.golden-star').forEach(btn => {
     btn.addEventListener('click', () => {
       const mid = btn.dataset.mid;
       const match = matches.find(m => m.id === mid);
-      if (match && new Date() > new Date(match.date)) return;
+      if (match && isMatchStarted(match)) return;
       grid.querySelectorAll('.golden-star').forEach(s => s.classList.remove('active'));
       grid.querySelectorAll('.m-card').forEach(c => {
         c.classList.remove('golden-active');
@@ -463,7 +516,7 @@ async function renderPredictions(md) {
   });
 
   // Show save button if any match is still upcoming
-  const anyUpcoming = matches.some(m => new Date() < new Date(m.date));
+  const anyUpcoming = matches.some(m => !isMatchStarted(m));
   const btn = document.getElementById('submit-btn');
   if (btn) {
     btn.style.display = anyUpcoming ? '' : 'none';
@@ -506,8 +559,7 @@ async function savePreds(md) {
 
   const preds = { ...existingPreds };
   matches.forEach(m => {
-    const matchStarted = now > new Date(m.date);
-    if (matchStarted) return;
+    if (isMatchStarted(m)) return;
     const hEl = document.getElementById('ph-' + m.id);
     const aEl = document.getElementById('pa-' + m.id);
     if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
