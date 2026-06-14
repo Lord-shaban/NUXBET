@@ -85,6 +85,28 @@
 
     <div class="md-tabs" id="admin-tabs"></div>
 
+    <!-- Add Prediction manually -->
+    <div class="adm-section" id="add-pred-section">
+      <div class="adm-section-title">
+        <span class="icon" style="background:rgba(0,150,255,0.1);color:#0096ff">+</span>
+        إضافة أو تعديل توقع للاعب
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <select id="ap-user" class="rq-input-field" style="flex:1;min-width:150px">
+          <option value="">-- اختر اللاعب --</option>
+        </select>
+        <select id="ap-match" class="rq-input-field" style="flex:1;min-width:150px">
+          <option value="">-- اختر المباراة --</option>
+        </select>
+      </div>
+      <div class="score-box" style="margin-bottom:10px;justify-content:center">
+        <input type="number" id="ap-home" min="0" max="20" placeholder="مضيف">
+        <span class="dash">-</span>
+        <input type="number" id="ap-away" min="0" max="20" placeholder="ضيف">
+      </div>
+      <button class="save-btn" id="btn-add-pred" style="margin-top:10px;padding:12px;background:linear-gradient(135deg, #0096ff, #0066ff);color:white;border-radius:50px">حفظ التوقع</button>
+    </div>
+
     <!-- Match Results -->
     <div class="adm-section" id="results-section">
       <div class="adm-section-title">
@@ -147,7 +169,7 @@
       if (document.getElementById('adm-pass').value === ADMIN_PASS) {
         document.getElementById('admin-login-overlay').style.display = 'none';
         document.getElementById('admin-app').style.display = 'block';
-        renderTabs(); renderMatches(activeMD);
+        renderTabs(); renderMatches(activeMD); loadUsersForDropdown();
       } else {
         document.getElementById('adm-error').textContent = 'كلمة المرور غلط';
       }
@@ -177,6 +199,13 @@
         const snap = await getDoc(doc(db, 'results', `md${md}`));
         if (snap.exists()) saved = snap.data().matches || {};
       } catch(e) { console.error(e); }
+
+      // Update match dropdown for manual prediction
+      const matchSelect = document.getElementById('ap-match');
+      matchSelect.innerHTML = '<option value="">-- اختر المباراة --</option>' + matches.map(m => {
+        const home = TEAMS[m.home], away = TEAMS[m.away];
+        return `<option value="${m.id}">${home.name} ضد ${away.name}</option>`;
+      }).join('');
 
       el.innerHTML = matches.map(m => {
         const home = TEAMS[m.home], away = TEAMS[m.away];
@@ -319,6 +348,60 @@
       } catch(e) { console.error(e); adminToast('حصل خطأ في الحفظ', 'error'); }
       btn.disabled = false; btn.textContent = 'حفظ الكل';
     });
+
+    // LOAD USERS FOR DROPDOWN
+    async function loadUsersForDropdown() {
+      const userSelect = document.getElementById('ap-user');
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        let opts = '<option value="">-- اختر اللاعب --</option>';
+        usersSnap.forEach(d => {
+          opts += `<option value="${d.id}">${d.data().displayName || 'مجهول'}</option>`;
+        });
+        userSelect.innerHTML = opts;
+      } catch(e) { console.error('Error loading users', e); }
+    }
+
+    // ADD PREDICTION MANUAL LOGIC
+    document.getElementById('btn-add-pred').addEventListener('click', async () => {
+      const uid = document.getElementById('ap-user').value;
+      const matchId = document.getElementById('ap-match').value;
+      const hVal = document.getElementById('ap-home').value;
+      const aVal = document.getElementById('ap-away').value;
+
+      if (!uid || !matchId || hVal === '' || aVal === '') {
+        adminToast('يرجى اختيار اللاعب والمباراة وإدخال النتيجة', 'warn');
+        return;
+      }
+
+      const btn = document.getElementById('btn-add-pred');
+      btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+      try {
+        const docRef = doc(db, 'predictions', `${uid}_md${activeMD}`);
+        const snap = await getDoc(docRef);
+        let data = { userId: uid, matchday: activeMD, preds: {}, goldenMatch: null, roundAnswer: '' };
+        if (snap.exists()) {
+          data = snap.data();
+        }
+        
+        data.preds[matchId] = { h: +hVal, a: +aVal };
+        data.updatedAt = serverTimestamp();
+
+        await setDoc(docRef, data);
+        adminToast('تم حفظ التوقع للاعب بنجاح!');
+        
+        // Reset inputs
+        document.getElementById('ap-home').value = '';
+        document.getElementById('ap-away').value = '';
+      } catch(e) {
+        console.error(e);
+        adminToast('حصل خطأ في حفظ التوقع', 'error');
+      }
+
+      btn.disabled = false; btn.textContent = 'حفظ التوقع';
+    });
+
   </script>
 </body>
 </html>
