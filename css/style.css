@@ -495,15 +495,94 @@ input, select { font-family: inherit; outline: none; }
 .pred-input { -moz-appearance: textfield; }
 .pred-dash { color: var(--text-dim); font-weight: 700; }
 
-.m-result {
-  display: flex; align-items: center; justify-content: center;
-  gap: 5px; margin-top: 8px; font-size: 0.78rem; font-weight: 700;
-  padding: 4px 12px; border-radius: var(--r-pill);
+/* Prediction vs Result comparison section */
+.m-comparison {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--border-dim);
 }
-.m-result.exact { color: var(--green); background: var(--green-soft); }
-.m-result.diff { background: rgba(255,159,10,0.08); color: var(--orange); }
-.m-result.correct { color: var(--orange); background: rgba(255,140,0,0.1); }
-.m-result.wrong { color: var(--red); background: var(--red-soft); }
+.m-comp-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+.m-comp-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 1;
+}
+.m-comp-label {
+  font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.m-comp-score {
+  font-size: 1.2rem; font-weight: 800; padding: 4px 14px;
+  border-radius: var(--r-sm); letter-spacing: 1px;
+}
+.m-comp-score.pred-score {
+  background: rgba(150, 60, 255, 0.1); color: var(--pl-violet);
+  border: 1px solid rgba(150, 60, 255, 0.2);
+}
+.m-comp-score.actual-score {
+  background: rgba(0, 255, 135, 0.08); color: var(--green);
+  border: 1px solid rgba(0, 255, 135, 0.15);
+}
+.m-comp-vs-icon {
+  font-size: 1rem; color: var(--text-dim); opacity: 0.6;
+}
+.m-pts-badge {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 10px; padding: 8px 16px; border-radius: var(--r-pill);
+  font-weight: 700; font-size: 0.82rem;
+}
+.m-pts-badge.exact {
+  background: linear-gradient(135deg, rgba(0,255,135,0.12), rgba(0,255,135,0.06));
+  color: var(--green); border: 1px solid rgba(0,255,135,0.2);
+}
+.m-pts-badge.diff {
+  background: linear-gradient(135deg, rgba(255,159,10,0.12), rgba(255,159,10,0.06));
+  color: var(--orange); border: 1px solid rgba(255,159,10,0.2);
+}
+.m-pts-badge.correct {
+  background: linear-gradient(135deg, rgba(255,200,50,0.1), rgba(255,200,50,0.04));
+  color: var(--gold); border: 1px solid rgba(255,200,50,0.2);
+}
+.m-pts-badge.wrong {
+  background: linear-gradient(135deg, rgba(255,66,89,0.1), rgba(255,66,89,0.04));
+  color: var(--red); border: 1px solid rgba(255,66,89,0.2);
+}
+.m-pts-val {
+  font-size: 0.95rem; font-weight: 900;
+}
+.m-pts-golden {
+  font-size: 0.7rem; padding: 2px 6px; border-radius: var(--r-xs);
+  background: var(--gold-soft); color: var(--gold); font-weight: 800;
+}
+.m-pts-label {
+  font-weight: 700;
+}
+.m-no-pred {
+  text-align: center; padding: 8px; font-size: 0.78rem;
+  color: var(--text-dim); font-weight: 500; font-style: italic;
+}
+
+/* Saved prediction display for locked/live matches */
+.m-pred-saved-wrap {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 12px; padding: 10px 0 4px;
+  border-top: 1px solid var(--border-dim);
+}
+.m-pred-saved-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.m-pred-saved-score {
+  font-size: 1.1rem; font-weight: 800; color: var(--pl-violet);
+  padding: 3px 12px; border-radius: var(--r-sm);
+  background: rgba(150, 60, 255, 0.08);
+  border: 1px solid rgba(150, 60, 255, 0.15);
+}
+
+/* Played match card style */
+.m-card.m-played {
+  border-color: rgba(0, 255, 135, 0.12);
+}
 
 /* Submit */
 .submit-wrap { text-align: center; margin-top: 24px; }

@@ -432,6 +432,7 @@ async function renderPredictions(md) {
       const st = result ? 'played' : getMatchStatus(match);
       const p = preds[match.id] || {};
       const isGolden = goldenMatch === match.id;
+      const hasPred = p.h !== undefined && p.a !== undefined;
 
       let statusTxt = '';
       if (st === 'played') statusTxt = 'انتهت';
@@ -447,31 +448,59 @@ async function renderPredictions(md) {
         centerHTML = `<div class="m-time">${match.time}</div><div class="m-vs">VS</div>`;
       }
 
-      let resultHTML = '';
-      if (result && p.h !== undefined && p.a !== undefined) {
+      // Build comparison section for played matches
+      let comparisonHTML = '';
+      if (result && hasPred) {
         let pts = calcPts(p, result);
         if (isGolden) pts *= 2;
         const level = calcPtsLevel(p, result);
-        if (level === 'exact') resultHTML = `<div class="m-result exact">توقع دقيق +${pts}</div>`;
-        else if (level === 'diff') resultHTML = `<div class="m-result diff">فرق أهداف صحيح +${pts}</div>`;
-        else if (level === 'correct') resultHTML = `<div class="m-result correct">اتجاه صحيح +${pts}</div>`;
-        else resultHTML = `<div class="m-result wrong">خطأ</div>`;
+        const levelLabels = { exact: 'توقع دقيق 🎯', diff: 'فرق أهداف صحيح', correct: 'اتجاه صحيح', wrong: 'خطأ ✗' };
+        const levelIcons = { exact: '🎯', diff: '📊', correct: '✓', wrong: '✗' };
+        comparisonHTML = `
+          <div class="m-comparison">
+            <div class="m-comp-row">
+              <div class="m-comp-item">
+                <span class="m-comp-label">توقعك</span>
+                <span class="m-comp-score pred-score">${p.h} - ${p.a}</span>
+              </div>
+              <div class="m-comp-vs-icon">⚡</div>
+              <div class="m-comp-item">
+                <span class="m-comp-label">النتيجة</span>
+                <span class="m-comp-score actual-score">${result.home} - ${result.away}</span>
+              </div>
+            </div>
+            <div class="m-pts-badge ${level}">
+              <span class="m-pts-label">${levelLabels[level]}</span>
+              ${pts > 0 ? `<span class="m-pts-val">+${pts}</span>` : ''}
+              ${isGolden ? '<span class="m-pts-golden">★×2</span>' : ''}
+            </div>
+          </div>`;
+      } else if (result && !hasPred) {
+        comparisonHTML = `
+          <div class="m-comparison">
+            <div class="m-no-pred">لم تتوقع هذه المباراة</div>
+          </div>`;
+      }
+
+      // Show saved prediction for locked/live matches without result yet
+      let predDisplay = '';
+      if (isLocked && hasPred && !result) {
+        predDisplay = `
+          <div class="m-pred-saved-wrap">
+            <span class="m-pred-saved-label">توقعك</span>
+            <span class="m-pred-saved-score">${p.h} - ${p.a}</span>
+          </div>`;
       }
 
       const goldenCls = isGolden ? 'golden-active' : '';
       const lockedCls = (isLocked && !result) ? 'm-locked' : '';
       const endedCls = (st === 'ended') ? 'm-ended' : '';
+      const playedCls = result ? 'm-played' : '';
       // Disable golden star and inputs if match is locked (started or has result)
       const disabledAttr = isLocked ? 'disabled' : '';
 
-      // Show saved prediction for locked matches without result
-      let predDisplay = '';
-      if (isLocked && p.h !== undefined && p.a !== undefined && !result) {
-        predDisplay = `<div class="m-pred-saved">توقعك: ${p.h} - ${p.a}</div>`;
-      }
-
       return `
-        <div class="m-card ani ${goldenCls} ${lockedCls} ${endedCls}" id="mcard-${match.id}">
+        <div class="m-card ani ${goldenCls} ${lockedCls} ${endedCls} ${playedCls}" id="mcard-${match.id}">
           <div class="m-card-top">
             <span class="m-group-tag">المجموعة ${match.group}</span>
             <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">\u2605</button>
@@ -494,8 +523,8 @@ async function renderPredictions(md) {
                      value="${p.a !== undefined ? p.a : ''}">
             </div>`}
             ${predDisplay}
+            ${comparisonHTML}
             ${isGolden ? '<div class="golden-label">\u2605 مباراة ذهبية \u2014 النقاط \u00d72</div>' : ''}
-            ${resultHTML}
           </div>
         </div>
       `;
