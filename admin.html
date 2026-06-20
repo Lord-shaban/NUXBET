@@ -18,11 +18,14 @@
     .adm-section-title { font-size: 0.85rem; font-weight: 700; color: var(--pl-violet); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
     .adm-section-title .icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 0.75rem; font-weight: 900; }
 
-    .match-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 6px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border-dim); flex-wrap: wrap; }
+    .match-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 6px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border-dim); flex-wrap: wrap; transition: all 0.2s; }
+    .match-row:hover { border-color: var(--border-base); }
+    .match-row.has-result { border-right: 3px solid var(--green); }
     .match-row .group-tag { font-size: 0.65rem; font-weight: 700; color: var(--pl-magenta); background: rgba(233,0,82,0.08); padding: 2px 8px; border-radius: 10px; }
     .match-row .flag-sm { width: 24px; height: 18px; border-radius: 3px; object-fit: cover; }
     .match-row .team-names { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--text-body); min-width: 120px; }
-    .match-row .date-tag { font-size: 0.7rem; color: var(--text-dim); }
+    .match-row .date-tag { font-size: 0.7rem; color: var(--text-dim); font-weight: 500; }
+    .result-status { font-size: 0.9rem; flex-shrink: 0; }
     .score-box { display: flex; align-items: center; gap: 4px; }
     .score-box input { width: 44px; height: 36px; text-align: center; font-size: 1rem; font-weight: 700; color: var(--text-primary); background: var(--bg-input); border: 1.5px solid var(--border-base); border-radius: 8px; }
     .score-box input:focus { border-color: var(--green); box-shadow: 0 0 8px rgba(0,255,135,0.1); }
@@ -164,7 +167,7 @@
     <div class="toast" id="admin-toast"><span class="toast-icon toast-success" id="admin-toast-ico"></span><span id="admin-toast-msg"></span></div>
   </div>
 
-  <script src="js/data.js?v=4"></script>
+  <script src="js/data.js?v=14"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
     import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
@@ -229,27 +232,22 @@
         if (snap.exists()) saved = snap.data().matches || {};
       } catch(e) { console.error(e); }
 
-      // Update match dropdown for manual prediction
-      const matchSelect = document.getElementById('ap-match');
-      matchSelect.innerHTML = '<option value="">-- اختر المباراة --</option>' + matches.map(m => {
-        const home = TEAMS[m.home], away = TEAMS[m.away];
-        return `<option value="${m.id}">${home.name} ضد ${away.name}</option>`;
-      }).join('');
-
       el.innerHTML = matches.map(m => {
         const home = TEAMS[m.home], away = TEAMS[m.away];
         const r = saved[m.id] || m.result || {};
-        return `<div class="match-row">
+        const hasResult = r.home !== undefined && r.away !== undefined;
+        return `<div class="match-row ${hasResult ? 'has-result' : ''}">
           <span class="group-tag">${m.group}</span>
           <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
           <span class="team-names">${home.name} vs ${away.name}</span>
           <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
-          <span class="date-tag">${formatMatchDate(m.date)}</span>
+          <span class="date-tag">${formatMatchDate(m.date)} - ${m.time}</span>
           <div class="score-box">
             <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-">
             <span class="dash">-</span>
             <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-">
           </div>
+          <span class="result-status">${hasResult ? '✅' : '⏳'}</span>
         </div>`;
       }).join('');
 
