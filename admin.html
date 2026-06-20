@@ -54,6 +54,40 @@
       .answer-row { padding: 8px 10px; }
       .adm-section { padding: 14px; }
     }
+    /* Player prediction editor */
+    .ap-header { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .ap-header select { flex: 1; min-width: 180px; }
+    .ap-load-btn { padding: 10px 20px; background: linear-gradient(135deg, #0096ff, #0066ff); color: white; font-weight: 700; font-size: 0.82rem; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .ap-load-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,100,255,0.3); }
+    .ap-player-info { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(0,150,255,0.06); border: 1px solid rgba(0,150,255,0.15); border-radius: 10px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 600; color: var(--blue); }
+    .ap-matches-grid { display: flex; flex-direction: column; gap: 6px; }
+    .ap-match-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-elevated); border: 1px solid var(--border-dim); border-radius: 10px; transition: all 0.2s; }
+    .ap-match-row:hover { border-color: var(--border-base); }
+    .ap-match-row.has-pred { border-right: 3px solid var(--green); }
+    .ap-match-row.is-golden-row { border-right: 3px solid var(--gold); background: rgba(232,185,35,0.04); }
+    .ap-golden-star { font-size: 1.2rem; cursor: pointer; opacity: 0.25; transition: all 0.2s; background: none; border: none; padding: 2px 4px; }
+    .ap-golden-star:hover { opacity: 0.7; transform: scale(1.15); }
+    .ap-golden-star.active { opacity: 1; color: var(--gold); filter: drop-shadow(0 0 4px rgba(232,185,35,0.5)); }
+    .ap-match-info { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .ap-match-info .flag-sm { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; }
+    .ap-match-info .team-txt { font-size: 0.75rem; font-weight: 600; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ap-match-info .vs-txt { font-size: 0.6rem; color: var(--text-dim); font-weight: 700; }
+    .ap-score-inputs { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .ap-score-inputs input { width: 40px; height: 34px; text-align: center; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); background: var(--bg-input); border: 1.5px solid var(--border-base); border-radius: 8px; }
+    .ap-score-inputs input:focus { border-color: var(--green); box-shadow: 0 0 6px rgba(0,255,135,0.1); }
+    .ap-score-inputs .dash { color: var(--text-dim); font-weight: 700; font-size: 0.8rem; }
+    .ap-match-status { font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
+    .ap-match-status.played { background: var(--green-soft); color: var(--green); }
+    .ap-match-status.upcoming { background: var(--blue-soft); color: var(--blue); }
+    .ap-match-status.live { background: var(--red-soft); color: var(--red); }
+    .ap-save-btn { display: block; width: 100%; padding: 12px; margin-top: 14px; background: linear-gradient(135deg, #0096ff, #0066ff); color: white; font-size: 0.9rem; font-weight: 700; border-radius: 50px; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(0,100,255,0.2); transition: all 0.3s; }
+    .ap-save-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,100,255,0.3); }
+    .ap-empty { text-align: center; padding: 20px; color: var(--text-dim); font-size: 0.82rem; }
+    @media (max-width: 600px) {
+      .ap-match-row { padding: 8px; gap: 5px; flex-wrap: wrap; }
+      .ap-score-inputs input { width: 36px; height: 30px; font-size: 0.85rem; }
+      .ap-match-info .team-txt { font-size: 0.68rem; }
+    }
   </style>
 </head>
 <body>
@@ -85,26 +119,21 @@
 
     <div class="md-tabs" id="admin-tabs"></div>
 
-    <!-- Add Prediction manually -->
+    <!-- Player Prediction Editor -->
     <div class="adm-section" id="add-pred-section">
       <div class="adm-section-title">
-        <span class="icon" style="background:rgba(0,150,255,0.1);color:#0096ff">+</span>
-        إضافة أو تعديل توقع للاعب
+        <span class="icon" style="background:rgba(0,150,255,0.1);color:#0096ff">✎</span>
+        تعديل توقعات لاعب
       </div>
-      <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-        <select id="ap-user" class="rq-input-field" style="flex:1;min-width:150px">
+      <div class="ap-header">
+        <select id="ap-user" class="rq-input-field">
           <option value="">-- اختر اللاعب --</option>
         </select>
-        <select id="ap-match" class="rq-input-field" style="flex:1;min-width:150px">
-          <option value="">-- اختر المباراة --</option>
-        </select>
+        <button class="ap-load-btn" id="ap-load-btn">عرض التوقعات</button>
       </div>
-      <div class="score-box" style="margin-bottom:10px;justify-content:center">
-        <input type="number" id="ap-home" min="0" max="20" placeholder="مضيف">
-        <span class="dash">-</span>
-        <input type="number" id="ap-away" min="0" max="20" placeholder="ضيف">
+      <div id="ap-player-content">
+        <div class="ap-empty">اختر لاعباً ثم اضغط "عرض التوقعات" لعرض وتعديل توقعاته</div>
       </div>
-      <button class="save-btn" id="btn-add-pred" style="margin-top:10px;padding:12px;background:linear-gradient(135deg, #0096ff, #0066ff);color:white;border-radius:50px">حفظ التوقع</button>
     </div>
 
     <!-- Match Results -->
@@ -362,45 +391,126 @@
       } catch(e) { console.error('Error loading users', e); }
     }
 
-    // ADD PREDICTION MANUAL LOGIC
-    document.getElementById('btn-add-pred').addEventListener('click', async () => {
+    // PLAYER PREDICTIONS EDITOR
+    let currentPlayerPreds = null;
+    let currentPlayerUid = null;
+
+    document.getElementById('ap-load-btn').addEventListener('click', async () => {
       const uid = document.getElementById('ap-user').value;
-      const matchId = document.getElementById('ap-match').value;
-      const hVal = document.getElementById('ap-home').value;
-      const aVal = document.getElementById('ap-away').value;
+      if (!uid) { adminToast('يرجى اختيار اللاعب أولاً', 'warn'); return; }
 
-      if (!uid || !matchId || hVal === '' || aVal === '') {
-        adminToast('يرجى اختيار اللاعب والمباراة وإدخال النتيجة', 'warn');
-        return;
-      }
-
-      const btn = document.getElementById('btn-add-pred');
-      btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+      const btn = document.getElementById('ap-load-btn');
+      btn.textContent = 'جاري التحميل...'; btn.disabled = true;
 
       try {
         const docRef = doc(db, 'predictions', `${uid}_md${activeMD}`);
         const snap = await getDoc(docRef);
-        let data = { userId: uid, matchday: activeMD, preds: {}, goldenMatch: null, roundAnswer: '' };
+        
         if (snap.exists()) {
-          data = snap.data();
+          currentPlayerPreds = snap.data();
+        } else {
+          currentPlayerPreds = { userId: uid, matchday: activeMD, preds: {}, goldenMatch: null, roundAnswer: '' };
         }
-        
-        data.preds[matchId] = { h: +hVal, a: +aVal };
-        data.updatedAt = serverTimestamp();
-
-        await setDoc(docRef, data);
-        adminToast('تم حفظ التوقع للاعب بنجاح!');
-        
-        // Reset inputs
-        document.getElementById('ap-home').value = '';
-        document.getElementById('ap-away').value = '';
+        currentPlayerUid = uid;
+        renderPlayerPredictions();
       } catch(e) {
-        console.error(e);
-        adminToast('حصل خطأ في حفظ التوقع', 'error');
+        console.error(e); adminToast('خطأ في تحميل توقعات اللاعب', 'error');
       }
-
-      btn.disabled = false; btn.textContent = 'حفظ التوقع';
+      btn.textContent = 'عرض التوقعات'; btn.disabled = false;
     });
+
+    function renderPlayerPredictions() {
+      const container = document.getElementById('ap-player-content');
+      if (!currentPlayerPreds) return;
+
+      const matches = MATCHES[activeMD] || [];
+      const userSelect = document.getElementById('ap-user');
+      const playerName = userSelect.options[userSelect.selectedIndex].text;
+
+      let html = `
+        <div class="ap-player-info">
+          <span>👤</span> تعديل توقعات: <strong>${playerName}</strong> - الجولة ${activeMD}
+        </div>
+        <div class="ap-matches-grid">
+      `;
+
+      matches.forEach(m => {
+        const home = TEAMS[m.home], away = TEAMS[m.away];
+        const p = currentPlayerPreds.preds[m.id] || {};
+        const isGolden = currentPlayerPreds.goldenMatch === m.id;
+        const hasPred = p.h !== undefined && p.a !== undefined;
+        
+        let statusHtml = '';
+        const st = getMatchStatus(m);
+        if (st === 'played' || st === 'ended') statusHtml = `<span class="ap-match-status played">انتهت</span>`;
+        else if (st === 'live') statusHtml = `<span class="ap-match-status live">مباشر</span>`;
+        else statusHtml = `<span class="ap-match-status upcoming">${m.time}</span>`;
+
+        html += `
+          <div class="ap-match-row ${hasPred ? 'has-pred' : ''} ${isGolden ? 'is-golden-row' : ''}">
+            <button class="ap-golden-star ${isGolden ? 'active' : ''}" data-mid="${m.id}" title="تعيين كمباراة ذهبية">★</button>
+            <div class="ap-match-info">
+              <span class="team-txt">${home.name}</span>
+              <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
+              <span class="vs-txt">VS</span>
+              <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
+              <span class="team-txt">${away.name}</span>
+            </div>
+            ${statusHtml}
+            <div class="ap-score-inputs">
+              <input type="number" class="ap-h-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}">
+              <span class="dash">-</span>
+              <input type="number" class="ap-a-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}">
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+        </div>
+        <button class="ap-save-btn" id="ap-save-preds-btn">حفظ توقعات اللاعب</button>
+      `;
+      
+      container.innerHTML = html;
+
+      // Attach Golden Star logic
+      container.querySelectorAll('.ap-golden-star').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mid = btn.dataset.mid;
+          currentPlayerPreds.goldenMatch = mid;
+          renderPlayerPredictions(); // Re-render to update UI
+        });
+      });
+
+      // Attach Save logic
+      document.getElementById('ap-save-preds-btn').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('ap-save-preds-btn');
+        saveBtn.textContent = 'جاري الحفظ...'; saveBtn.disabled = true;
+
+        // Gather predictions from inputs
+        const newPreds = {};
+        container.querySelectorAll('.ap-h-input').forEach(hInput => {
+          const mid = hInput.dataset.mid;
+          const aInput = container.querySelector(`.ap-a-input[data-mid="${mid}"]`);
+          if (hInput.value !== '' && aInput.value !== '') {
+            newPreds[mid] = { h: +hInput.value, a: +aInput.value };
+          }
+        });
+
+        currentPlayerPreds.preds = newPreds;
+        currentPlayerPreds.updatedAt = serverTimestamp();
+
+        try {
+          await setDoc(doc(db, 'predictions', `${currentPlayerUid}_md${activeMD}`), currentPlayerPreds);
+          adminToast('تم حفظ توقعات اللاعب بنجاح!');
+          renderPlayerPredictions(); // Refresh styling
+        } catch(e) {
+          console.error(e); adminToast('حدث خطأ أثناء حفظ التوقعات', 'error');
+        }
+
+        saveBtn.textContent = 'حفظ توقعات اللاعب'; saveBtn.disabled = false;
+      });
+    }
 
   </script>
 </body>
