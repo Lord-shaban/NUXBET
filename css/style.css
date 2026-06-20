@@ -1023,6 +1023,17 @@ input, select { font-family: inherit; outline: none; }
   font-weight: 700;
 }
 
+/* Ended status badge - match likely finished but no result entered */
+.m-status.ended {
+  background: rgba(255, 159, 10, 0.10);
+  color: var(--orange);
+  font-weight: 700;
+}
+.m-card.m-ended {
+  opacity: 0.75;
+  border-color: rgba(255, 159, 10, 0.2);
+}
+
 /* Saved prediction display for locked matches */
 .m-pred-saved {
   text-align: center; padding: 10px 0 4px;

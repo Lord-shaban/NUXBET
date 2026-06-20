@@ -351,9 +351,10 @@ async function renderPredictions(md) {
       const strip = document.getElementById('md-strip');
       if (strip) strip.parentNode.insertBefore(filterWrap, strip.nextSibling);
     }
+    const filterBtnText = showOnlyAvailable ? '\u{1F50D} عرض الكل' : `\u2705 المتاحة فقط (${upcomingCount})`;
     filterWrap.innerHTML = `
       <button class="pred-filter-btn ${showOnlyAvailable ? 'active' : ''}" id="pred-filter-btn">
-        ${showOnlyAvailable ? '\u{1F50D} عرض الكل' : '\u2705 المتاحة فقط (${upcomingCount})'}
+        ${filterBtnText}
       </button>
       <span class="pred-filter-info">${startedCount > 0 ? '\u{1F512} ' + startedCount + ' مباراة مقفلة' : ''}</span>
     `;
@@ -425,6 +426,7 @@ async function renderPredictions(md) {
 
       let statusTxt = '';
       if (st === 'played') statusTxt = 'انتهت';
+      else if (st === 'ended') statusTxt = 'بانتظار النتيجة';
       else if (st === 'live') statusTxt = 'مباشر';
       else if (started) statusTxt = '\u{1F512} مقفلة';
       else statusTxt = match.time;
@@ -449,6 +451,7 @@ async function renderPredictions(md) {
 
       const goldenCls = isGolden ? 'golden-active' : '';
       const lockedCls = (started && !result) ? 'm-locked' : '';
+      const endedCls = (st === 'ended') ? 'm-ended' : '';
       const disabledAttr = started ? 'disabled' : '';
 
       // Show saved prediction for locked matches
@@ -458,12 +461,12 @@ async function renderPredictions(md) {
       }
 
       return `
-        <div class="m-card ani ${goldenCls} ${lockedCls}" id="mcard-${match.id}">
+        <div class="m-card ani ${goldenCls} ${lockedCls} ${endedCls}" id="mcard-${match.id}">
           <div class="m-card-top">
             <span class="m-group-tag">المجموعة ${match.group}</span>
             <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">\u2605</button>
             <span class="m-date">${formatMatchDate(match.date)}</span>
-            <span class="m-status ${started && !result ? 'locked' : st}">${statusTxt}</span>
+            <span class="m-status ${st === 'ended' ? 'ended' : started && !result ? 'locked' : st}">${statusTxt}</span>
           </div>
           <div class="m-card-body">
             ${started && !result ? '<div class="m-locked-overlay"><span class="m-locked-icon">\u{1F512}</span><span class="m-locked-text">تم إغلاق التوقعات</span></div>' : ''}
