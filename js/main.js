@@ -329,10 +329,17 @@ async function renderPredictions(md) {
   const loading = document.getElementById('pred-loading');
   loading.style.display = 'flex';
 
+  // Sort matches by date + time chronologically
+  const sortedMatches = [...matches].sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time}:00+03:00`);
+    const dateB = new Date(`${b.date}T${b.time}:00+03:00`);
+    return dateA - dateB;
+  });
+
   if (info) {
     document.getElementById('md-range').textContent = info.dateRange;
-    const upcomingCount = matches.filter(m => !isMatchStarted(m)).length;
-    const startedCount = matches.length - upcomingCount;
+    const upcomingCount = sortedMatches.filter(m => !isMatchStarted(m)).length;
+    const startedCount = sortedMatches.length - upcomingCount;
     const dlEl = document.getElementById('md-deadline');
     if (upcomingCount === 0) {
       dlEl.textContent = 'بدأت كل المباريات';
@@ -411,7 +418,7 @@ async function renderPredictions(md) {
   loading.style.display = 'none';
 
   // Filter matches if needed
-  const displayMatches = showOnlyAvailable ? matches.filter(m => !isMatchStarted(m)) : matches;
+  const displayMatches = showOnlyAvailable ? sortedMatches.filter(m => !isMatchStarted(m)) : sortedMatches;
 
   if (displayMatches.length === 0) {
     grid.innerHTML = '<div class="empty-state">لا توجد مباريات متاحة للتوقع حالياً</div>';
@@ -419,16 +426,18 @@ async function renderPredictions(md) {
     grid.innerHTML = displayMatches.map(match => {
       const home = TEAMS[match.home], away = TEAMS[match.away];
       const result = getMatchResult(match, md);
+      const started = isMatchStarted(match);
+      // A match is locked if it has started OR has a result from admin
+      const isLocked = started || result !== null;
       const st = result ? 'played' : getMatchStatus(match);
       const p = preds[match.id] || {};
       const isGolden = goldenMatch === match.id;
-      const started = isMatchStarted(match);
 
       let statusTxt = '';
       if (st === 'played') statusTxt = 'انتهت';
       else if (st === 'ended') statusTxt = 'بانتظار النتيجة';
       else if (st === 'live') statusTxt = 'مباشر';
-      else if (started) statusTxt = '\u{1F512} مقفلة';
+      else if (isLocked) statusTxt = '\u{1F512} مقفلة';
       else statusTxt = match.time;
 
       let centerHTML = '';
@@ -450,13 +459,14 @@ async function renderPredictions(md) {
       }
 
       const goldenCls = isGolden ? 'golden-active' : '';
-      const lockedCls = (started && !result) ? 'm-locked' : '';
+      const lockedCls = (isLocked && !result) ? 'm-locked' : '';
       const endedCls = (st === 'ended') ? 'm-ended' : '';
-      const disabledAttr = started ? 'disabled' : '';
+      // Disable golden star and inputs if match is locked (started or has result)
+      const disabledAttr = isLocked ? 'disabled' : '';
 
-      // Show saved prediction for locked matches
+      // Show saved prediction for locked matches without result
       let predDisplay = '';
-      if (started && p.h !== undefined && p.a !== undefined && !result) {
+      if (isLocked && p.h !== undefined && p.a !== undefined && !result) {
         predDisplay = `<div class="m-pred-saved">توقعك: ${p.h} - ${p.a}</div>`;
       }
 
@@ -466,16 +476,16 @@ async function renderPredictions(md) {
             <span class="m-group-tag">المجموعة ${match.group}</span>
             <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">\u2605</button>
             <span class="m-date">${formatMatchDate(match.date)}</span>
-            <span class="m-status ${st === 'ended' ? 'ended' : started && !result ? 'locked' : st}">${statusTxt}</span>
+            <span class="m-status ${st === 'ended' ? 'ended' : isLocked && !result ? 'locked' : st}">${statusTxt}</span>
           </div>
           <div class="m-card-body">
-            ${started && !result ? '<div class="m-locked-overlay"><span class="m-locked-icon">\u{1F512}</span><span class="m-locked-text">تم إغلاق التوقعات</span></div>' : ''}
+            ${isLocked && !result ? '<div class="m-locked-overlay"><span class="m-locked-icon">\u{1F512}</span><span class="m-locked-text">تم إغلاق التوقعات</span></div>' : ''}
             <div class="m-fixture">
               <div class="m-team">${flagImg(home)}<span class="name">${home.name}</span></div>
               <div class="m-center">${centerHTML}</div>
               <div class="m-team">${flagImg(away)}<span class="name">${away.name}</span></div>
             </div>
-            ${started ? '' : `<div class="m-pred">
+            ${isLocked ? '' : `<div class="m-pred">
               <label>توقعك:</label>
               <input type="number" class="pred-input" id="ph-${match.id}" min="0" max="20" placeholder="-"
                      value="${p.h !== undefined ? p.h : ''}">
@@ -496,8 +506,9 @@ async function renderPredictions(md) {
   grid.querySelectorAll('.golden-star').forEach(btn => {
     btn.addEventListener('click', () => {
       const mid = btn.dataset.mid;
-      const match = matches.find(m => m.id === mid);
-      if (match && isMatchStarted(match)) return;
+      const match = sortedMatches.find(m => m.id === mid);
+      // Block if match started, has result, or button is disabled
+      if (!match || isMatchStarted(match) || getMatchResult(match, md)) return;
       grid.querySelectorAll('.golden-star').forEach(s => s.classList.remove('active'));
       grid.querySelectorAll('.m-card').forEach(c => {
         c.classList.remove('golden-active');
@@ -518,8 +529,8 @@ async function renderPredictions(md) {
     });
   });
 
-  // Show save button if any match is still upcoming
-  const anyUpcoming = matches.some(m => !isMatchStarted(m));
+  // Show save button if any match is still available for prediction
+  const anyUpcoming = sortedMatches.some(m => !isMatchStarted(m));
   const btn = document.getElementById('submit-btn');
   if (btn) {
     btn.style.display = anyUpcoming ? '' : 'none';
