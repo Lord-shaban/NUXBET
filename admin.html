@@ -163,11 +163,26 @@
       </div>
     </div>
 
+    <!-- Cup Re-Draw -->
+    <div class="adm-section" id="cup-draw-section">
+      <div class="adm-section-title">
+        <span class="icon" style="background:rgba(232,185,35,0.1);color:var(--gold)">🏆</span>
+        قرعة الكأس
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px">اضغط لإعادة سحب قرعة الجولة الحالية. ستُحذف القرعة القديمة وتُنشأ قرعة جديدة عشوائية.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="save-btn cup-redraw-btn" data-md="1" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 1</button>
+        <button class="save-btn cup-redraw-btn" data-md="2" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 2</button>
+        <button class="save-btn cup-redraw-btn" data-md="3" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 3</button>
+      </div>
+      <div id="cup-draw-status" style="margin-top:10px;font-size:0.78rem;color:var(--text-dim);text-align:center"></div>
+    </div>
+
     <button class="save-btn" id="admin-save">حفظ الكل</button>
     <div class="toast" id="admin-toast"><span class="toast-icon toast-success" id="admin-toast-ico"></span><span id="admin-toast-msg"></span></div>
   </div>
 
-  <script src="js/data.js?v=14"></script>
+  <script src="js/data.js?v=15"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
     import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
@@ -509,6 +524,65 @@
         saveBtn.textContent = 'حفظ توقعات اللاعب'; saveBtn.disabled = false;
       });
     }
+
+    // CUP RE-DRAW LOGIC
+    document.querySelectorAll('.cup-redraw-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const md = +btn.dataset.md;
+        if (!confirm(`هل أنت متأكد من إعادة قرعة الجولة ${md}؟ ستُحذف القرعة الحالية.`)) return;
+
+        btn.disabled = true;
+        btn.textContent = 'جاري السحب...';
+        const statusEl = document.getElementById('cup-draw-status');
+
+        try {
+          // Get all users
+          const usersSnap = await getDocs(collection(db, 'users'));
+          const uids = [];
+          usersSnap.forEach(d => uids.push(d.id));
+
+          if (uids.length < 2) {
+            adminToast('يجب أن يكون هناك لاعبين على الأقل', 'warn');
+            btn.disabled = false; btn.textContent = `🔄 قرعة الجولة ${md}`;
+            return;
+          }
+
+          // Shuffle and create matchups
+          const shuffled = [...uids].sort(() => Math.random() - 0.5);
+          let byePlayer = null;
+          if (shuffled.length % 2 !== 0) {
+            byePlayer = shuffled.pop();
+          }
+          const matchups = [];
+          for (let i = 0; i < shuffled.length; i += 2) {
+            matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+          }
+
+          const draw = { matchday: md, matchups, byePlayer: byePlayer || null, createdAt: new Date().toISOString() };
+          await setDoc(doc(db, 'cupDraws', `round${md}`), draw);
+
+          // Build status text
+          const allUsersMap = {};
+          usersSnap.forEach(d => { allUsersMap[d.id] = d.data(); });
+          let statusText = `✅ تم سحب قرعة الجولة ${md}: `;
+          matchups.forEach(m => {
+            const n1 = allUsersMap[m.p1]?.displayName || 'لاعب';
+            const n2 = allUsersMap[m.p2]?.displayName || 'لاعب';
+            statusText += `${n1} ⚔ ${n2} | `;
+          });
+          if (byePlayer) {
+            statusText += `${allUsersMap[byePlayer]?.displayName || 'لاعب'} 🎫 راحة`;
+          }
+          statusEl.textContent = statusText;
+          adminToast(`تم سحب قرعة الجولة ${md} بنجاح!`);
+        } catch(e) {
+          console.error(e);
+          adminToast('حدث خطأ أثناء سحب القرعة', 'error');
+        }
+
+        btn.disabled = false; btn.textContent = `🔄 قرعة الجولة ${md}`;
+      });
+    });
 
   </script>
 </body>

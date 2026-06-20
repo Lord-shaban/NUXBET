@@ -794,6 +794,12 @@ input, select { font-family: inherit; outline: none; }
   font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
 }
 .cup-summary .winner-tag { color: var(--green); font-weight: 700; }
+.cup-match.cup-bye {
+  border-color: rgba(232,185,35,0.25);
+  background: linear-gradient(135deg, rgba(232,185,35,0.04), transparent);
+}
+.cup-match.cup-bye .cup-player { border-bottom: none; }
+.cup-match.cup-bye .cup-summary { background: rgba(232,185,35,0.06); }
 
 /* ============================================================
    How to Play

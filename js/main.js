@@ -823,7 +823,54 @@ async function renderCup() {
     return pts;
   }
 
+  // Generate a draw ensuring no duplicate matchups from previous rounds
+  function generateDraw(uids, previousDraws) {
+    const prevPairs = new Set();
+    previousDraws.forEach(d => {
+      (d.matchups || []).forEach(m => {
+        prevPairs.add([m.p1, m.p2].sort().join('|'));
+      });
+    });
+
+    // Try multiple times to get unique matchups
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const shuffled = [...uids].sort(() => Math.random() - 0.5);
+      const matchups = [];
+      let byePlayer = null;
+      let valid = true;
+
+      // If odd number, last player gets BYE
+      if (shuffled.length % 2 !== 0) {
+        byePlayer = shuffled.pop();
+      }
+
+      for (let i = 0; i < shuffled.length; i += 2) {
+        const pair = [shuffled[i], shuffled[i + 1]].sort().join('|');
+        // Check if this pair already played in a previous round
+        if (prevPairs.has(pair)) {
+          valid = false;
+          break;
+        }
+        matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+      }
+
+      if (valid || attempt === 49) {
+        return { matchups, byePlayer };
+      }
+    }
+    // Fallback
+    const shuffled = [...uids].sort(() => Math.random() - 0.5);
+    let byePlayer = null;
+    if (shuffled.length % 2 !== 0) byePlayer = shuffled.pop();
+    const matchups = [];
+    for (let i = 0; i < shuffled.length; i += 2) {
+      matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+    }
+    return { matchups, byePlayer };
+  }
+
   const rounds = [];
+  const previousDraws = [];
   for (const md of [1, 2, 3]) {
     let draw = null;
     try {
@@ -833,16 +880,13 @@ async function renderCup() {
 
     const uids = Object.keys(allUsers);
     if (!draw && uids.length >= 2) {
-      const shuffled = [...uids].sort(() => Math.random() - 0.5);
-      const matchups = [];
-      for (let i = 0; i < shuffled.length; i += 2) {
-        if (shuffled[i + 1]) matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
-      }
-      draw = { matchday: md, matchups, createdAt: new Date().toISOString() };
+      const { matchups, byePlayer } = generateDraw(uids, previousDraws);
+      draw = { matchday: md, matchups, byePlayer: byePlayer || null, createdAt: new Date().toISOString() };
       try { await setDoc(doc(db, 'cupDraws', `round${md}`), draw); } catch (e) { console.error(e); }
     }
 
     if (draw) {
+      previousDraws.push(draw);
       const matchups = (draw.matchups || []).map(m => {
         const p1Pts = getUserMDPts(m.p1, md);
         const p2Pts = getUserMDPts(m.p2, md);
@@ -852,28 +896,45 @@ async function renderCup() {
           winnerId: p1Pts > p2Pts ? m.p1 : p2Pts > p1Pts ? m.p2 : null
         };
       });
-      rounds.push({ matchday: md, name: MATCHDAY_INFO[md].name, matchups });
+      const byeInfo = draw.byePlayer ? {
+        uid: draw.byePlayer,
+        ...(allUsers[draw.byePlayer] || { displayName: 'لاعب', avatar: '' })
+      } : null;
+      rounds.push({ matchday: md, name: MATCHDAY_INFO[md].name, matchups, byePlayer: byeInfo });
     }
   }
 
+  // Calculate standings
   const standings = {};
   Object.entries(allUsers).forEach(([uid, u]) => {
-    standings[uid] = { uid, name: u.displayName, avatar: u.avatar, w: 0, d: 0, l: 0, pts: 0 };
+    standings[uid] = { uid, name: u.displayName, avatar: u.avatar, w: 0, d: 0, l: 0, bye: 0, pts: 0 };
   });
   rounds.forEach(round => {
     round.matchups.forEach(m => {
       if (!standings[m.p1.uid] || !standings[m.p2.uid]) return;
-      if (m.winnerId === m.p1.uid) { standings[m.p1.uid].w++; standings[m.p1.uid].pts += 3; standings[m.p2.uid].l++; }
-      else if (m.winnerId === m.p2.uid) { standings[m.p2.uid].w++; standings[m.p2.uid].pts += 3; standings[m.p1.uid].l++; }
-      else { standings[m.p1.uid].d++; standings[m.p1.uid].pts += 1; standings[m.p2.uid].d++; standings[m.p2.uid].pts += 1; }
+      if (m.winnerId === m.p1.uid) {
+        standings[m.p1.uid].w++; standings[m.p1.uid].pts += 3;
+        standings[m.p2.uid].l++;
+      } else if (m.winnerId === m.p2.uid) {
+        standings[m.p2.uid].w++; standings[m.p2.uid].pts += 3;
+        standings[m.p1.uid].l++;
+      } else {
+        standings[m.p1.uid].d++; standings[m.p1.uid].pts += 1;
+        standings[m.p2.uid].d++; standings[m.p2.uid].pts += 1;
+      }
     });
+    // BYE player gets 1 point
+    if (round.byePlayer && standings[round.byePlayer.uid]) {
+      standings[round.byePlayer.uid].bye++;
+      standings[round.byePlayer.uid].pts += 1;
+    }
   });
 
   loading.style.display = 'none';
   const el = document.getElementById('cup-content');
   if (!el) return;
 
-  const standingsArr = Object.values(standings).sort((a, b) => b.pts - a.pts);
+  const standingsArr = Object.values(standings).sort((a, b) => b.pts - a.pts || b.w - a.w);
   if (standingsArr.length === 0) {
     el.innerHTML = '<div class="empty-state">لازم يسجل لاعبين أول عشان الكأس يبدأ</div>';
     return;
@@ -887,23 +948,22 @@ async function renderCup() {
 
   let html = `<div class="sec-title"><span class="bar"></span> ترتيب الكأس</div>
     <div class="lg-table" style="margin-bottom:32px">
-      <div class="lg-hdr" style="grid-template-columns:45px 1fr 50px 50px 50px 60px"><div>#</div><div>اللاعب</div><div>فوز</div><div>تعادل</div><div>خسارة</div><div>نقاط</div></div>
+      <div class="lg-hdr" style="grid-template-columns:40px 1fr 45px 45px 45px 45px 55px"><div>#</div><div>اللاعب</div><div>فوز</div><div>تعادل</div><div>خسارة</div><div>راحة</div><div>نقاط</div></div>
       ${standingsArr.map((p, i) => {
         const r = i + 1;
         let rkHTML = r === 1 ? `<span class="rk-badge g">1</span>` : r === 2 ? `<span class="rk-badge s">2</span>` : r === 3 ? `<span class="rk-badge b">3</span>` : `<span class="rk-num">${r}</span>`;
         const you = currentUser && p.uid === currentUser.uid ? ' you' : '';
         const avH = p.avatar && p.avatar.length > 3 ? `<img src="${p.avatar}" class="pl-av-img" alt="">` : `<span class="pl-av"></span>`;
-        return `<div class="lg-row${you} ani" style="grid-template-columns:45px 1fr 50px 50px 50px 60px">
+        return `<div class="lg-row${you} ani" style="grid-template-columns:40px 1fr 45px 45px 45px 45px 55px">
           <div class="rk">${rkHTML}</div>
           <div class="pl-info" style="cursor:pointer" onclick="goProfile('${p.uid}')">${avH}<span class="pl-name">${p.name}</span></div>
           <div class="cell" style="color:var(--green)">${p.w}</div><div class="cell">${p.d}</div>
-          <div class="cell" style="color:var(--red)">${p.l}</div><div class="cell pts">${p.pts}</div>
+          <div class="cell" style="color:var(--red)">${p.l}</div><div class="cell" style="color:var(--gold)">${p.bye}</div><div class="cell pts">${p.pts}</div>
         </div>`;
       }).join('')}
     </div>`;
 
   rounds.forEach(round => {
-    if (round.matchups.length === 0) return;
     html += `<div class="cup-round-title">${round.name}</div><div class="cup-grid">`;
     round.matchups.forEach(m => {
       const p1w = m.winnerId === m.p1.uid, p2w = m.winnerId === m.p2.uid, draw = !m.winnerId;
@@ -920,6 +980,16 @@ async function renderCup() {
         <div class="cup-summary"><span class="winner-tag">${summary}</span></div>
       </div>`;
     });
+    // Show BYE player
+    if (round.byePlayer) {
+      html += `<div class="cup-match ani cup-bye">
+        <div class="cup-player">
+          <div class="cup-pl-info" style="cursor:pointer" onclick="goProfile('${round.byePlayer.uid}')">${cupAvatar(round.byePlayer.avatar)}<span class="nm">${round.byePlayer.displayName}</span></div>
+          <span class="cup-pts" style="color:var(--gold)">+1</span>
+        </div>
+        <div class="cup-summary"><span class="winner-tag" style="color:var(--gold)">🎫 راحة (BYE)</span></div>
+      </div>`;
+    }
     html += '</div>';
   });
 
