@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="NUXBET - توقعات كأس العالم 2026. سجّل وتوقع نتائج المباريات من المجموعات وحتى النهائي وتنافس مع أصدقائك">
   <title>NUXBET | توقعات كأس العالم 2026</title>
-  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/style.css?v=31">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23E90052%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 font-size=%2250%22 font-weight=%22900%22 fill=%22white%22>N</text></svg>">
 </head>
 <body>
@@ -175,21 +175,27 @@
           <h3>توقّع النتائج</h3>
           <p>ادخل صفحة الإقصائيات وتوقع نتيجة كل مباراة قبل انطلاقها. لازم تحفظ قبل بداية المباراة!</p>
         </div>
-        <div class="howto-card ani">
-          <div class="howto-step">2</div>
-          <h3>نظام النقاط</h3>
-          <p><strong>نتيجة مطابقة = 6 نقاط</strong> • <strong>فرق أهداف صحيح = 4</strong> • <strong>فائز صحيح = 2</strong> • <strong>خطأ = 0</strong></p>
-        </div>
         <div class="howto-card gold-card ani">
           <div class="howto-step gold">★</div>
           <h3>المباراة الذهبية</h3>
           <p>كل دور اختار مباراة واحدة كمباراة ذهبية — نقاطها <strong>تتضاعف ×2</strong>!</p>
         </div>
         <div class="howto-card ani">
-          <div class="howto-step">4</div>
+          <div class="howto-step">3</div>
           <h3>تنافس واتصدر!</h3>
           <p>اجمع أكبر عدد من النقاط وتابع ترتيبك في صفحة الدوري. شوف بروفايلات أصحابك وقارن بينكم!</p>
         </div>
+      </div>
+
+      <!-- Points System -->
+      <div class="sec-title" style="margin-top:32px"><span class="bar"></span> نظام النقاط</div>
+      <div class="points-table">
+        <div class="pt-row pt-header"><div>النتيجة</div><div>الوصف</div><div>النقاط</div></div>
+        <div class="pt-row exact"><div>🎯 مطابقة</div><div>توقعت النتيجة بالظبط (مثلاً 2-1 والنتيجة 2-1)</div><div class="pt-val">5</div></div>
+        <div class="pt-row diff"><div>📐 فرق الأهداف</div><div>فرق الأهداف صحيح لكن النتيجة مختلفة (مثلاً 3-2 والنتيجة 2-1)</div><div class="pt-val">3</div></div>
+        <div class="pt-row correct"><div>✅ الفائز صح</div><div>توقعت الفائز صح بس النتيجة والفرق غلط</div><div class="pt-val">1</div></div>
+        <div class="pt-row wrong"><div>❌ خطأ</div><div>الفائز غلط أو توقعت تعادل والنتيجة غير كده</div><div class="pt-val">0</div></div>
+        <div class="pt-row golden"><div>★ المباراة الذهبية</div><div>نقاط المباراة اللي اختارتها ذهبية تتضاعف</div><div class="pt-val">×2</div></div>
       </div>
 
     </section>
@@ -294,7 +300,7 @@
   <div class="toast" id="toast"><span class="toast-icon" id="toast-ico"></span><span id="toast-msg"></span></div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=30"></script>
-  <script type="module" src="js/main.js?v=30"></script>
+  <script src="js/data.js?v=31"></script>
+  <script type="module" src="js/main.js?v=31"></script>
 </body>
 </html>
