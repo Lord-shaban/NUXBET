@@ -663,7 +663,6 @@ async function savePreds(md) {
 async function renderKnockout(roundKey) {
   activeKORound = roundKey;
   const tabsEl = document.getElementById('ko-round-tabs');
-  const badgeEl = document.getElementById('ko-multiplier-badge');
   const grid = document.getElementById('ko-matches-grid');
   const loading = document.getElementById('ko-loading');
   loading.style.display = 'flex';
@@ -671,12 +670,10 @@ async function renderKnockout(roundKey) {
   // Render round tabs
   tabsEl.innerHTML = KNOCKOUT_ROUND_KEYS.map(k => {
     const r = KNOCKOUT_ROUNDS[k];
-    const mult = KNOCKOUT_MULTIPLIERS[k];
     const isActive = k === roundKey;
     return `<button class="ko-round-tab ${isActive ? 'active' : ''}" data-round="${k}">
       <span class="ko-tab-icon">${r.icon}</span>
       <span>${r.name}</span>
-      <span class="ko-tab-mult">×${mult}</span>
     </button>`;
   }).join('');
 
@@ -684,14 +681,7 @@ async function renderKnockout(roundKey) {
     btn.addEventListener('click', () => renderKnockout(btn.dataset.round));
   });
 
-  // Multiplier badge
-  const mult = KNOCKOUT_MULTIPLIERS[roundKey];
   const roundInfo = KNOCKOUT_ROUNDS[roundKey];
-  badgeEl.innerHTML = `
-    <span class="ko-mult-icon">${roundInfo.icon}</span>
-    <span class="ko-mult-text">${roundInfo.name} — مضاعف النقاط:</span>
-    <span class="ko-mult-val">×${mult}</span>
-  `;
 
   // Load existing predictions for this round
   let preds = {}, goldenMatch = null;
@@ -754,7 +744,6 @@ async function renderKnockout(roundKey) {
     let comparisonHTML = '';
     if (result && hasPred) {
       let pts = calcPts(p, result);
-      pts = Math.round(pts * mult);
       if (isGolden) pts *= 2;
       const level = calcPtsLevel(p, result);
       const levelLabels = { exact: 'توقع دقيق 🎯', diff: 'فرق أهداف صحيح', correct: 'اتجاه صحيح', wrong: 'خطأ ✗' };
@@ -769,7 +758,6 @@ async function renderKnockout(roundKey) {
             <span class="m-pts-label">${levelLabels[level]}</span>
             ${pts > 0 ? `<span class="m-pts-val">+${pts}</span>` : ''}
             ${isGolden ? '<span class="m-pts-golden">★×2</span>' : ''}
-            <span class="m-pts-golden" style="font-size:0.65rem">×${mult}</span>
           </div>
         </div>`;
     }
@@ -862,8 +850,44 @@ async function renderKnockout(roundKey) {
     submitWrap.innerHTML = '';
   }
 
-  // Render bracket
-  renderBracket();
+  // Load and render round question
+  try {
+    const rqSnap = await getDoc(doc(db, 'roundQuestions', `ko_${roundKey}`));
+    let rqWrap = grid.parentElement.querySelector('.ko-rq-wrap');
+    if (!rqWrap) {
+      rqWrap = document.createElement('div');
+      rqWrap.className = 'ko-rq-wrap';
+      submitWrap.parentElement.insertBefore(rqWrap, submitWrap);
+    }
+    if (rqSnap.exists() && rqSnap.data().question) {
+      const rqData = rqSnap.data();
+      // Load existing answer
+      let savedAnswer = '';
+      if (currentUser) {
+        try {
+          const predSnap = await getDoc(doc(db, 'predictions', `${currentUser.uid}_ko_${roundKey}`));
+          if (predSnap.exists()) savedAnswer = predSnap.data().roundAnswer || '';
+        } catch(e) {}
+      }
+      let resultHTML = '';
+      if (currentUser && rqData.reviews && savedAnswer) {
+        if (rqData.reviews[currentUser.uid] === true) {
+          resultHTML = '<div class="rq-result correct">إجابة صحيحة! +3 نقاط</div>';
+        } else if (rqData.reviews[currentUser.uid] === false) {
+          resultHTML = '<div class="rq-result wrong">إجابة خاطئة</div>';
+        }
+      }
+      rqWrap.innerHTML = `
+        <div class="round-question-card" style="display:block">
+          <div class="rq-header"><span class="rq-icon">❓</span> سؤال الجولة <span class="rq-pts">+3 نقاط</span></div>
+          <p class="rq-text">${rqData.question}</p>
+          <input type="text" class="rq-input" id="ko-rq-answer" placeholder="اكتب إجابتك..." value="${savedAnswer}">
+          ${resultHTML}
+        </div>`;
+    } else {
+      rqWrap.innerHTML = '';
+    }
+  } catch(e) { console.error('Error loading round question:', e); }
 }
 
 async function saveKnockoutPreds(roundKey) {
@@ -896,8 +920,10 @@ async function saveKnockoutPreds(roundKey) {
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
   try {
+    const rqInput = document.getElementById('ko-rq-answer');
+    const roundAnswer = rqInput ? rqInput.value.trim() : '';
     await setDoc(doc(db, 'predictions', `${currentUser.uid}_ko_${roundKey}`), {
-      userId: currentUser.uid, matchday: roundKey, preds, goldenMatch, savedAt: serverTimestamp()
+      userId: currentUser.uid, matchday: roundKey, preds, goldenMatch, roundAnswer, savedAt: serverTimestamp()
     });
     btn.textContent = 'تم الحفظ!'; btn.className = 'ko-save-btn saved';
     toast('تم حفظ توقعاتك بنجاح!');
