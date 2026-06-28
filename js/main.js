@@ -155,17 +155,18 @@ function onAuth(user) {
   const header = document.getElementById('app-header');
   const main = document.getElementById('app-main');
   const footer = document.getElementById('app-footer');
+  const mobileNav = document.getElementById('mobile-nav');
 
   if (user) {
     overlay.style.display = 'none';
     header.style.display = ''; main.style.display = ''; footer.style.display = '';
-    document.getElementById('mobile-nav').style.display = '';
+    mobileNav.classList.add('visible');
     loadUserData(user.uid);
     go('home');
   } else {
     overlay.style.display = 'flex';
     header.style.display = 'none'; main.style.display = 'none'; footer.style.display = 'none';
-    document.getElementById('mobile-nav').style.display = 'none';
+    mobileNav.classList.remove('visible');
     currentUserData = null;
     buildAvatarGrid();
   }

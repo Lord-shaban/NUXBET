@@ -1748,11 +1748,11 @@ input, select { font-family: inherit; outline: none; }
    MOBILE BOTTOM NAV — Floating Pill
    ============================================================ */
 .mobile-bottom-nav {
-  display: none;
+  display: none !important;
 }
 
 @media (max-width: 600px) {
-  .mobile-bottom-nav {
+  .mobile-bottom-nav.visible {
     display: flex !important;
     position: fixed;
     bottom: 14px; left: 14px; right: 14px;
@@ -1784,46 +1784,54 @@ input, select { font-family: inherit; outline: none; }
     gap: 2px; flex: 1;
     padding: 5px 2px;
     background: none; border: none; cursor: pointer;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.4);
     font-size: 0.5rem; font-weight: 500;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 0.25s, background 0.25s, transform 0.15s;
     border-radius: 14px;
     font-family: inherit;
     position: relative;
   }
 
+  /* SVG icons — stroke controlled entirely by CSS */
   .mob-nav-btn svg {
-    width: 17px; height: 17px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 18px; height: 18px;
+    fill: none;
+    stroke: rgba(255,255,255,0.4);
     stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.25s;
   }
 
   .mob-nav-btn span {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 0.25s, font-weight 0.1s;
     letter-spacing: -0.2px;
   }
 
-  /* Active state — use color to control currentColor in SVG */
+  /* ---- ACTIVE STATE ---- */
   .mob-nav-btn.active {
-    color: var(--pink);
-    background: rgba(233, 0, 82, 0.1);
+    color: #ff3a7a;
+    background: rgba(255, 58, 122, 0.1);
+  }
+  .mob-nav-btn.active svg {
+    stroke: #ff3a7a !important;
   }
   .mob-nav-btn.active span {
+    color: #ff3a7a;
     font-weight: 700;
     font-size: 0.52rem;
   }
-
 
   /* Active dot indicator */
   .mob-nav-btn.active::after {
     content: '';
     position: absolute;
-    bottom: 0px;
+    bottom: 0;
     left: 50%; transform: translateX(-50%);
     width: 4px; height: 4px;
     border-radius: 50%;
-    background: var(--pink);
-    box-shadow: 0 0 8px rgba(233, 0, 82, 0.6);
+    background: #ff3a7a;
+    box-shadow: 0 0 8px rgba(255, 58, 122, 0.6);
     animation: dotPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
