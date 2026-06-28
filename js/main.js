@@ -1438,26 +1438,42 @@ async function renderProfile(uid) {
   const container = document.getElementById('profile-content');
   container.innerHTML = '';
   loading.style.display = 'flex';
+  profileUid = uid; // ensure profileUid always updated
   await loadAllUsers();
   await loadResults();
 
   const user = allUsers[uid];
   if (!user) { container.innerHTML = '<div class="empty-state">المستخدم غير موجود</div>'; loading.style.display = 'none'; return; }
 
+  // Load ALL predictions (for bonus calculation)
   const allPredsMap = {};
   try {
     const snap = await getDocs(collection(db, 'predictions'));
     snap.forEach(d => {
       const data = d.data();
       if (!allPredsMap[data.userId]) allPredsMap[data.userId] = {};
-      allPredsMap[data.userId][data.matchday] = { preds: data.preds || {}, goldenMatch: data.goldenMatch, roundAnswer: data.roundAnswer || null };
+      const key = isNaN(data.matchday) ? data.matchday : +data.matchday;
+      allPredsMap[data.userId][key] = { preds: data.preds || {}, goldenMatch: data.goldenMatch, roundAnswer: data.roundAnswer || null };
     });
   } catch (e) { console.error(e); }
 
-  const userPreds = {};
-  Object.entries(allPredsMap[uid] || {}).forEach(([md, data]) => {
-    const key = isNaN(md) ? md : +md;
-    userPreds[key] = data;
+  const userPreds = allPredsMap[uid] || {};
+
+  // Build unique prediction tracking for bonus
+  const matchWinnerPreds = {};
+  ALL_MATCHDAY_KEYS.forEach(md => {
+    matchWinnerPreds[md] = {};
+    Object.entries(allPredsMap).forEach(([puid, pMDs]) => {
+      const pData = pMDs[md];
+      if (!pData) return;
+      Object.entries(pData.preds).forEach(([matchId, pred]) => {
+        if (!matchWinnerPreds[md][matchId]) matchWinnerPreds[md][matchId] = { home: [], away: [], draw: [] };
+        const ph = parseInt(pred.h), pa = parseInt(pred.a);
+        if (isNaN(ph) || isNaN(pa)) return;
+        const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
+        matchWinnerPreds[md][matchId][side].push(puid);
+      });
+    });
   });
 
   const roundQuestions = {};
@@ -1474,7 +1490,7 @@ async function renderProfile(uid) {
 
   ALL_MATCHDAY_KEYS.forEach(md => {
     const preds = userPreds[md];
-    if (!preds) { mdStats[md] = { pts: 0, matches: [], goldenMatch: null }; return; }
+    if (!preds) { mdStats[md] = { pts: 0, matches: [], goldenMatch: null, wrongCount: 0 }; return; }
     let mdPts = 0, mdWrong = 0;
     const golden = preds.goldenMatch;
     const matchDetails = [];
@@ -1487,7 +1503,7 @@ async function renderProfile(uid) {
       if (!pred || pred.h === undefined) return;
       totalPredicted++;
       const isGolden = match.id === golden;
-      let pts = 0, level = 'none';
+      let pts = 0, level = 'none', matchBonus = 0;
       if (result) {
         totalPlayed++;
         pts = calcPts(pred, result);
@@ -1498,9 +1514,22 @@ async function renderProfile(uid) {
         else if (level === 'diff') diffCount++;
         else if (level === 'correct') correctCount++;
         else { wrongCount++; mdWrong++; }
+
+        // Bonus check
+        if (level === 'correct' || level === 'diff' || level === 'exact') {
+          const ph = parseInt(pred.h), pa = parseInt(pred.a);
+          const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
+          const predsForSide = matchWinnerPreds[md]?.[match.id]?.[side] || [];
+          if (predsForSide.length === 1 && predsForSide[0] === uid) {
+            pts += 3;
+            matchBonus = 3;
+            bonusCount += 3;
+          }
+        }
+
         mdPts += pts; totalPts += pts;
       }
-      matchDetails.push({ match, pred, result, pts, level, isGolden, bonusPts: 0 });
+      matchDetails.push({ match, pred, result, pts, level, isGolden, bonusPts: matchBonus });
     });
 
     if (typeof md === 'number' && mdWrong >= 6) { mdPts -= 2; totalPts -= 2; }
@@ -1513,8 +1542,6 @@ async function renderProfile(uid) {
 
   const accuracy = totalPlayed > 0 ? Math.round(((exactCount + diffCount + correctCount) / totalPlayed) * 100) : 0;
   const avgPts = totalPlayed > 0 ? (totalPts / totalPlayed).toFixed(1) : '0';
-  const totalUsers = Object.keys(allUsers).length;
-  const rank = 1; // Simplified
 
   loading.style.display = 'none';
 
@@ -1572,9 +1599,16 @@ async function renderProfile(uid) {
       </div>`;
 
     stats.matches.forEach(m => {
-      const homeTeam = TEAMS[m.match.home];
-      const awayTeam = TEAMS[m.match.away];
-      if (!homeTeam || !awayTeam) return;
+      // Safely get team info (handles null/TBD for knockout)
+      const homeCode = m.match.home;
+      const awayCode = m.match.away;
+      const homeTeam = homeCode ? TEAMS[homeCode] : null;
+      const awayTeam = awayCode ? TEAMS[awayCode] : null;
+      const homeName = homeTeam ? homeTeam.name : 'يُحدد';
+      const awayName = awayTeam ? awayTeam.name : 'يُحدد';
+      const homeFlag = homeTeam ? `<img src="${flagUrl(homeTeam.iso)}" class="flag-xs" alt="">` : '<span class="flag-xs">❓</span>';
+      const awayFlag = awayTeam ? `<img src="${flagUrl(awayTeam.iso)}" class="flag-xs" alt="">` : '<span class="flag-xs">❓</span>';
+
       const predStr = `${m.pred.h} - ${m.pred.a}`;
       const resultStr = m.result ? `${m.result.home} - ${m.result.away}` : '\u2014';
       let levelClass = '', levelEmoji = '', ptsText = '';
@@ -1583,23 +1617,24 @@ async function renderProfile(uid) {
         levelEmoji = m.level === 'exact' ? '\u{1F3AF}' : m.level === 'diff' ? '\u2705' : m.level === 'correct' ? '\u{1F44D}' : '\u274C';
         ptsText = m.pts > 0 ? `+${m.pts}` : '0';
       }
+      const bonusTag = m.bonusPts > 0 ? ' <span style="color:#ffb800;font-size:0.65rem">+3 بونص</span>' : '';
 
       html += `
       <div class="pf-match-row ${m.isGolden ? 'golden' : ''} ${levelClass}">
         <div class="pf-match-left">
           <span class="pf-match-emoji">${m.result ? levelEmoji : '\u23F3'}</span>
           <div class="pf-match-teams">
-            <img src="${flagUrl(homeTeam.iso)}" class="flag-xs" alt="">
-            <span>${homeTeam.name}</span>
+            ${homeFlag}
+            <span>${homeName}</span>
             <span class="pf-vs">vs</span>
-            <span>${awayTeam.name}</span>
-            <img src="${flagUrl(awayTeam.iso)}" class="flag-xs" alt="">
+            <span>${awayName}</span>
+            ${awayFlag}
             ${m.isGolden ? '<span class="pf-golden-star">\u2605</span>' : ''}
           </div>
         </div>
         <div class="pf-match-right">
           <div class="pf-match-nums"><span class="pf-pred-num">${predStr}</span><span class="pf-result-num">${resultStr}</span></div>
-          ${m.result ? `<span class="pf-pts-chip ${levelClass}">${ptsText}${m.isGolden ? ' x2' : ''}</span>` : ''}
+          ${m.result ? `<span class="pf-pts-chip ${levelClass}">${ptsText}${bonusTag}</span>` : ''}
         </div>
       </div>`;
     });
