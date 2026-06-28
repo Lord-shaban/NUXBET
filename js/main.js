@@ -227,15 +227,35 @@ function go(page) {
 window.go = go;
 
 let profileUid = null;
-function goProfile(uid) {
+let profileRequestId = 0;
+async function goProfile(uid) {
   profileUid = uid;
   activePage = 'profile';
+  const reqId = ++profileRequestId;
+  
+  // Switch page immediately
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-profile');
   if (el) el.classList.add('active');
-  renderProfile(uid);
+  
+  // Show loading immediately
+  const loading = document.getElementById('profile-loading');
+  const container = document.getElementById('profile-content');
+  if (loading) loading.style.display = 'flex';
+  if (container) container.innerHTML = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  try {
+    await renderProfile(uid, reqId);
+  } catch (e) {
+    console.error('Profile render error:', e);
+    if (reqId === profileRequestId) {
+      if (loading) loading.style.display = 'none';
+      if (container) container.innerHTML = '<div class="empty-state">حصل خطأ في تحميل البروفايل. حاول تاني.</div>';
+    }
+  }
 }
 window.goProfile = goProfile;
 
@@ -1482,14 +1502,16 @@ async function renderCup() {
 // ============================================================
 // PROFILE (Updated for knockout support)
 // ============================================================
-async function renderProfile(uid) {
+async function renderProfile(uid, reqId) {
   const loading = document.getElementById('profile-loading');
   const container = document.getElementById('profile-content');
   container.innerHTML = '';
   loading.style.display = 'flex';
-  profileUid = uid; // ensure profileUid always updated
+  profileUid = uid;
   await loadAllUsers();
+  if (reqId !== undefined && reqId !== profileRequestId) return; // stale
   await loadResults();
+  if (reqId !== undefined && reqId !== profileRequestId) return; // stale
 
   const user = allUsers[uid];
   if (!user) { container.innerHTML = '<div class="empty-state">المستخدم غير موجود</div>'; loading.style.display = 'none'; return; }
@@ -1505,6 +1527,7 @@ async function renderProfile(uid) {
       allPredsMap[data.userId][key] = { preds: data.preds || {}, goldenMatch: data.goldenMatch, roundAnswer: data.roundAnswer || null };
     });
   } catch (e) { console.error(e); }
+  if (reqId !== undefined && reqId !== profileRequestId) return; // stale
 
   const userPreds = allPredsMap[uid] || {};
 
