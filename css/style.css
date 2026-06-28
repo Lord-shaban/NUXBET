@@ -1192,18 +1192,21 @@ input, select { font-family: inherit; outline: none; }
 }
 
 @media (max-width: 600px) {
-  /* Header - compact, hide desktop nav */
-  .header-inner { height: 48px; gap: 6px; padding: 0 10px; }
+  /* Header - compact, logo left + user right */
+  .header-inner {
+    height: 44px; gap: 0; padding: 0 12px;
+    justify-content: space-between;
+  }
   .logo { gap: 6px; }
-  .logo-text { font-size: 0.85rem; letter-spacing: 1.5px; }
+  .logo-text { font-size: 1rem; letter-spacing: 2px; }
   .logo-icon { width: 28px; height: 28px; font-size: 11px; }
   .desktop-nav { display: none !important; }
 
-  .header-user { gap: 4px; }
-  .user-name { display: none; }
-  .user-av-img { width: 26px; height: 26px; }
-  .user-av { width: 26px; height: 26px; font-size: 0.85rem; }
-  .logout-btn { padding: 4px; }
+  .header-user { gap: 6px; }
+  .user-name { display: block; max-width: 90px; font-size: 0.72rem; }
+  .user-av-img { width: 28px; height: 28px; border-radius: 50%; }
+  .user-av { width: 28px; height: 28px; font-size: 0.85rem; }
+  .logout-btn { padding: 5px; }
   .logout-btn svg { width: 14px; height: 14px; }
 
   /* Main content - extra bottom padding for floating nav */
@@ -1804,11 +1807,10 @@ input, select { font-family: inherit; outline: none; }
   /* Active state */
   .mob-nav-btn.active {
     color: #fff;
+    background: rgba(233, 0, 82, 0.08);
   }
   .mob-nav-btn.active svg {
     stroke: var(--pink);
-    filter: drop-shadow(0 0 8px rgba(233, 0, 82, 0.5));
-    transform: translateY(-1px) scale(1.1);
   }
   .mob-nav-btn.active span {
     color: var(--pink);
