@@ -1213,7 +1213,7 @@ input, select { font-family: inherit; outline: none; }
   .main { padding: 14px 10px 90px; }
 
   /* Footer - above bottom nav */
-  .footer { margin-bottom: 80px; padding: 20px 14px; }
+  .footer { margin-bottom: 100px; padding: 20px 14px; }
   .footer p { font-size: 0.65rem; }
   .footer-phone-link { font-size: 0.68rem; padding: 5px 10px; }
 
