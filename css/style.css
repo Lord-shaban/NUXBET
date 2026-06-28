@@ -670,20 +670,31 @@ input, select { font-family: inherit; outline: none; }
   gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
 }
 .lg-pills {
-  display: flex; gap: 2px;
+  display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
   background: rgba(28, 6, 54, 0.8); padding: 3px; border-radius: var(--r-pill);
-  border: 1px solid var(--border-dim);
+  border: 1px solid var(--border-dim); -ms-overflow-style: none;
 }
+.lg-pills::-webkit-scrollbar { display: none; }
 .lg-pill {
-  padding: 7px 20px; border-radius: var(--r-pill);
-  font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
-  transition: all var(--t-normal);
+  padding: 7px 14px; border-radius: var(--r-pill);
+  font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+  transition: all var(--t-normal); white-space: nowrap; flex-shrink: 0;
 }
 .lg-pill:hover { color: var(--text-primary); }
 .lg-pill.active {
   color: var(--pl-purple); background: var(--grad-green);
   font-weight: 700; box-shadow: var(--shadow-green);
 }
+.lg-pill.ko-pill.active {
+  background: var(--grad-brand); color: #fff;
+}
+.lg-pill .pill-icon { margin-left: 3px; font-size: 0.7rem; }
+
+/* Mini League on Homepage */
+.mini-league { margin-top: 8px; }
+.mini-league .lg-table { margin-bottom: 0; }
+.mini-league .lg-hdr, .mini-league .lg-row { font-size: 0.75rem; }
+.mini-league .lg-row { padding: 8px 10px; }
 .lg-search { position: relative; }
 .lg-search input {
   padding: 8px 14px 8px 34px; width: 200px;

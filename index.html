@@ -70,9 +70,9 @@
         <span class="logo-text">NUXBET</span>
       </div>
       <nav class="nav" id="main-nav">
-        <button class="nav-btn active" data-page="home">الرئيسية</button>
-        <button class="nav-btn" data-page="predictions">التوقعات</button>
+        <button class="nav-btn" data-page="home">الرئيسية</button>
         <button class="nav-btn" data-page="knockout">الإقصائيات</button>
+        <button class="nav-btn" data-page="predictions">التوقعات</button>
         <button class="nav-btn" data-page="league">الدوري</button>
         <button class="nav-btn" data-page="cup">الكأس</button>
       </nav>
@@ -98,11 +98,11 @@
       <!-- Hero -->
       <div class="hero">
         <div class="hero-content">
-          <div class="hero-badge">FIFA WORLD CUP 2026</div>
-          <h1>توقع نتائج<br><span class="accent">كأس العالم</span></h1>
-          <p class="hero-sub">نافس أصدقائك في توقع نتائج المباريات واكسب النقاط. اختر مباراتك الذهبية وضاعف نقاطك!</p>
+          <div class="hero-badge">FIFA WORLD CUP 2026 ⚔️ KNOCKOUT STAGE</div>
+          <h1>الأدوار الإقصائية<br><span class="accent">كأس العالم</span></h1>
+          <p class="hero-sub">مرحلة خروج المغلوب بدأت! توقع نتائج المباريات من دور الـ 32 حتى النهائي — النقاط تتضاعف كل دور!</p>
           <div class="hero-actions">
-            <button class="hero-cta" id="hero-start-btn">ابدأ التوقع الآن</button>
+            <button class="hero-cta" id="hero-start-btn">توقع الإقصائيات الآن</button>
             <button class="hero-cta-outline" id="hero-howto-btn">كيف تلعب؟</button>
           </div>
         </div>
@@ -192,6 +192,13 @@
       <div class="sec-title" style="margin-top:40px"><span class="bar"></span> مجموعات كأس العالم 2026</div>
       <div class="groups-grid" id="groups-grid"></div>
 
+      <!-- Mini League on Home -->
+      <div class="sec-title" style="margin-top:40px"><span class="bar"></span> ترتيب الدوري</div>
+      <div id="home-league-mini"></div>
+      <div style="text-align:center;margin-top:12px">
+        <button class="hero-cta-outline" onclick="go('league')" style="font-size:0.8rem;padding:8px 24px">عرض الترتيب الكامل</button>
+      </div>
+
     </section>
 
     <!-- PREDICTIONS -->
@@ -226,17 +233,14 @@
     <section class="page" id="page-league">
       <div class="sec-title"><span class="bar"></span> دوري التوقعات</div>
       <div class="lg-controls">
-        <div class="lg-pills">
-          <button class="lg-pill active" data-f="overall">الإجمالي</button>
-          <button class="lg-pill" data-f="weekly">الجولة</button>
-        </div>
+        <div class="lg-pills" id="lg-pills"></div>
         <div class="lg-search">
           <svg class="search-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" placeholder="ابحث عن لاعب..." id="lg-search">
         </div>
       </div>
       <div class="lg-table">
-        <div class="lg-hdr">
+        <div class="lg-hdr" id="lg-hdr">
           <div>#</div><div>اللاعب</div><div class="hide-m">دقيق</div><div class="hide-m">فرق</div><div class="hide-m">صحيح</div><div>م</div><div>النقاط</div>
         </div>
         <div id="lg-rows"></div>

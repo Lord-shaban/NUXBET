@@ -211,7 +211,7 @@ function go(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
 
-  if (page === 'home') { renderGroups(); startCountdown(); }
+  if (page === 'home') { renderGroups(); startCountdown(); renderHomeMiniLeague(); }
   if (page === 'predictions') renderPredictions(activeMD);
   if (page === 'knockout') renderKnockout(activeKORound);
   if (page === 'league') renderLeague();
@@ -941,8 +941,11 @@ function renderBracket() {
 }
 
 // ============================================================
-// LEAGUE (Updated for knockout support)
+// LEAGUE (Updated with detailed filtering)
 // ============================================================
+let leagueFilter = 'ko_total'; // default to knockout total
+let leagueScoresCache = null;
+
 async function renderLeague() {
   const loading = document.getElementById('league-loading');
   loading.style.display = 'flex';
@@ -988,28 +991,30 @@ async function renderLeague() {
   });
 
   const scores = Object.entries(allUsers).map(([uid, user]) => {
-    let totalPts = 0, exact = 0, diff = 0, correct = 0, predicted = 0, bonus = 0, weeklyPts = {};
+    let totalPts = 0, groupPts = 0, koPts = 0;
+    let exact = 0, diff = 0, correct = 0, predicted = 0, bonus = 0;
+    const weeklyPts = {};
 
     ALL_MATCHDAY_KEYS.forEach(md => {
       const userPreds = allPreds[uid]?.[md];
-      if (!userPreds) return;
+      if (!userPreds) { weeklyPts[md] = 0; return; }
       let mdPts = 0, wrongCount = 0;
       const golden = userPreds.goldenMatch;
       const multiplier = getKnockoutMultiplier(md);
+      let mdExact = 0, mdDiff = 0, mdCorrect = 0, mdPredicted = 0;
 
       Object.entries(userPreds.preds).forEach(([matchId, pred]) => {
         const result = getResult(matchId, md);
         if (!result) return;
-        predicted++;
+        predicted++; mdPredicted++;
         let pts = calcPts(pred, result);
         const level = calcPtsLevel(pred, result);
-        // Apply knockout multiplier
         pts = Math.round(pts * multiplier);
         if (matchId === golden) pts *= 2;
 
-        if (level === 'exact') exact++;
-        else if (level === 'diff') diff++;
-        else if (level === 'correct') correct++;
+        if (level === 'exact') { exact++; mdExact++; }
+        else if (level === 'diff') { diff++; mdDiff++; }
+        else if (level === 'correct') { correct++; mdCorrect++; }
         else wrongCount++;
 
         if (level === 'correct' || level === 'diff' || level === 'exact') {
@@ -1017,8 +1022,7 @@ async function renderLeague() {
           const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
           const predsForSide = matchWinnerPreds[md]?.[matchId]?.[side] || [];
           if (predsForSide.length === 1 && predsForSide[0] === uid) {
-            pts += 3;
-            bonus += 3;
+            pts += 3; bonus += 3;
           }
         }
 
@@ -1028,34 +1032,93 @@ async function renderLeague() {
       // 6-wrong penalty only for group stage
       if (typeof md === 'number' && wrongCount >= 6) { mdPts -= 2; totalPts -= 2; }
 
-      // Round question bonus (group stage only)
+      // Round question bonus
       const rq = roundQuestions[md];
       if (rq && rq.reviews && rq.reviews[uid] === true) {
         mdPts += 3; totalPts += 3;
       }
 
+      if (isKnockoutMD(md)) koPts += mdPts;
+      else groupPts += mdPts;
+
       weeklyPts[md] = mdPts;
     });
-    return { uid, name: user.displayName, avatar: user.avatar, points: totalPts, exact, diff, correct, predicted, bonus, weeklyPts };
+    return { uid, name: user.displayName, avatar: user.avatar, points: totalPts, groupPts, koPts, exact, diff, correct, predicted, bonus, weeklyPts };
   });
 
   loading.style.display = 'none';
+  leagueScoresCache = scores;
+  renderLeaguePills(scores);
   renderLeagueTable(scores);
 }
 
-let leagueFilter = 'overall';
+function renderLeaguePills(scores) {
+  const pillsEl = document.getElementById('lg-pills');
+  if (!pillsEl) return;
+
+  // Build pills: Overall | Groups Total | Knockout Total | then each individual matchday
+  const pills = [
+    { key: 'overall', label: 'المجموع الكلي', icon: '🌍', ko: false },
+    { key: 'group_total', label: 'المجموعات', icon: '⚽', ko: false },
+    { key: 'ko_total', label: 'الإقصائيات', icon: '⚔️', ko: true },
+  ];
+  // Individual matchdays
+  [1, 2, 3].forEach(md => {
+    const info = MATCHDAY_INFO[md];
+    pills.push({ key: `md_${md}`, label: info.name, icon: '', ko: false });
+  });
+  KNOCKOUT_ROUND_KEYS.forEach(k => {
+    const info = MATCHDAY_INFO[k];
+    const r = KNOCKOUT_ROUNDS[k];
+    pills.push({ key: `md_${k}`, label: r.short || info.name, icon: r.icon, ko: true });
+  });
+
+  pillsEl.innerHTML = pills.map(p => {
+    const active = leagueFilter === p.key ? 'active' : '';
+    const koCls = p.ko ? 'ko-pill' : '';
+    return `<button class="lg-pill ${active} ${koCls}" data-f="${p.key}">${p.icon ? `<span class="pill-icon">${p.icon}</span>` : ''}${p.label}</button>`;
+  }).join('');
+
+  pillsEl.querySelectorAll('.lg-pill').forEach(b => {
+    b.onclick = () => {
+      leagueFilter = b.dataset.f;
+      pillsEl.querySelectorAll('.lg-pill').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      renderLeagueTable(scores, document.getElementById('lg-search')?.value || '');
+    };
+  });
+}
+
+function getLeaguePts(p) {
+  if (leagueFilter === 'overall') return p.points;
+  if (leagueFilter === 'group_total') return p.groupPts;
+  if (leagueFilter === 'ko_total') return p.koPts;
+  // Individual matchday: md_1, md_2, md_3, md_R32, etc.
+  if (leagueFilter.startsWith('md_')) {
+    const mdKey = leagueFilter.substring(3);
+    const key = isNaN(mdKey) ? mdKey : +mdKey;
+    return p.weeklyPts[key] || 0;
+  }
+  return p.points;
+}
 
 function renderLeagueTable(scores, q = '') {
   let data = [...scores];
-  if (leagueFilter === 'weekly') {
-    data.sort((a, b) => (b.weeklyPts[activeMD] || 0) - (a.weeklyPts[activeMD] || 0));
-  } else {
-    data.sort((a, b) => b.points - a.points);
-  }
+  data.sort((a, b) => getLeaguePts(b) - getLeaguePts(a));
   if (q) data = data.filter(p => p.name.includes(q));
 
   const el = document.getElementById('lg-rows');
   if (!el) return;
+
+  // Dynamic header label
+  let ptsLabel = 'النقاط';
+  if (leagueFilter === 'ko_total') ptsLabel = 'نقاط الإقصائيات';
+  else if (leagueFilter === 'group_total') ptsLabel = 'نقاط المجموعات';
+  else if (leagueFilter.startsWith('md_')) ptsLabel = 'نقاط الجولة';
+  const hdrEl = document.getElementById('lg-hdr');
+  if (hdrEl) {
+    hdrEl.innerHTML = `<div>#</div><div>اللاعب</div><div class="hide-m">دقيق</div><div class="hide-m">فرق</div><div class="hide-m">صحيح</div><div>م</div><div>${ptsLabel}</div>`;
+  }
 
   el.innerHTML = data.map((p, i) => {
     const r = i + 1;
@@ -1065,7 +1128,7 @@ function renderLeagueTable(scores, q = '') {
     else if (r === 3) rkHTML = `<span class="rk-badge b">3</span>`;
     else rkHTML = `<span class="rk-num">${r}</span>`;
     const you = currentUser && p.uid === currentUser.uid ? ' you' : '';
-    const pts = leagueFilter === 'weekly' ? (p.weeklyPts[activeMD] || 0) : p.points;
+    const pts = getLeaguePts(p);
     const avH = p.avatar && p.avatar.length > 3
       ? `<img src="${p.avatar}" class="pl-av-img" alt="">`
       : `<span class="pl-av"></span>`;
@@ -1087,20 +1150,77 @@ function renderLeagueTable(scores, q = '') {
     el.innerHTML = '<div class="empty-state">لسه محدش سجل توقعات</div>';
   }
 
-  document.querySelectorAll('.lg-pill').forEach(b => {
-    b.onclick = () => {
-      leagueFilter = b.dataset.f;
-      document.querySelectorAll('.lg-pill').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      renderLeagueTable(scores, document.getElementById('lg-search')?.value || '');
-    };
-  });
-
   const inp = document.getElementById('lg-search');
   if (inp && !inp._bound) {
     inp._bound = true;
     inp.addEventListener('input', e => renderLeagueTable(scores, e.target.value));
   }
+}
+
+// Mini League for Homepage
+async function renderHomeMiniLeague() {
+  const el = document.getElementById('home-league-mini');
+  if (!el) return;
+
+  await loadAllUsers();
+  await loadResults();
+
+  const allPreds = {};
+  try {
+    const snap = await getDocs(collection(db, 'predictions'));
+    snap.forEach(d => {
+      const data = d.data();
+      if (!allPreds[data.userId]) allPreds[data.userId] = {};
+      allPreds[data.userId][data.matchday] = { preds: data.preds || {}, goldenMatch: data.goldenMatch };
+    });
+  } catch (e) { console.error(e); }
+
+  const scores = Object.entries(allUsers).map(([uid, user]) => {
+    let totalPts = 0;
+    ALL_MATCHDAY_KEYS.forEach(md => {
+      const userPreds = allPreds[uid]?.[md];
+      if (!userPreds) return;
+      const golden = userPreds.goldenMatch;
+      const multiplier = getKnockoutMultiplier(md);
+      let mdPts = 0, wrongCount = 0;
+      Object.entries(userPreds.preds).forEach(([matchId, pred]) => {
+        const result = getResult(matchId, md);
+        if (!result) return;
+        let pts = calcPts(pred, result);
+        pts = Math.round(pts * multiplier);
+        if (matchId === golden) pts *= 2;
+        if (calcPtsLevel(pred, result) === 'wrong') wrongCount++;
+        mdPts += pts; totalPts += pts;
+      });
+      if (typeof md === 'number' && wrongCount >= 6) { totalPts -= 2; }
+    });
+    return { uid, name: user.displayName, avatar: user.avatar, points: totalPts };
+  });
+
+  scores.sort((a, b) => b.points - a.points);
+  const top5 = scores.slice(0, 5);
+
+  if (top5.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="font-size:0.8rem">لسه محدش سجل توقعات</div>';
+    return;
+  }
+
+  el.innerHTML = `<div class="mini-league">
+    <div class="lg-table">
+      <div class="lg-hdr"><div>#</div><div>اللاعب</div><div>النقاط</div></div>
+      ${top5.map((p, i) => {
+        const r = i + 1;
+        let rkHTML = r === 1 ? '<span class="rk-badge g">1</span>' : r === 2 ? '<span class="rk-badge s">2</span>' : r === 3 ? '<span class="rk-badge b">3</span>' : `<span class="rk-num">${r}</span>`;
+        const you = currentUser && p.uid === currentUser.uid ? ' you' : '';
+        const avH = p.avatar && p.avatar.length > 3 ? `<img src="${p.avatar}" class="pl-av-img" alt="">` : '<span class="pl-av"></span>';
+        return `<div class="lg-row${you} ani" style="grid-template-columns:40px 1fr 55px">
+          <div class="rk">${rkHTML}</div>
+          <div class="pl-info" style="cursor:pointer" onclick="goProfile('${p.uid}')">${avH}<span class="pl-name">${p.name}</span></div>
+          <div class="cell pts">${p.points}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
 }
 
 // ============================================================
@@ -1507,7 +1627,7 @@ function init() {
   document.getElementById('header-profile-link')?.addEventListener('click', () => {
     if (currentUser) goProfile(currentUser.uid);
   });
-  document.getElementById('hero-start-btn')?.addEventListener('click', () => go('predictions'));
+  document.getElementById('hero-start-btn')?.addEventListener('click', () => go('knockout'));
   document.getElementById('hero-howto-btn')?.addEventListener('click', () => {
     document.getElementById('howto-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
