@@ -187,11 +187,11 @@ const KNOCKOUT_ROUNDS = {
 // Points multiplier per knockout round (scales up importance)
 const KNOCKOUT_MULTIPLIERS = {
   R32: 1,
-  R16: 1.5,
-  QF: 2,
-  SF: 3,
-  '3RD': 2,
-  FINAL: 4
+  R16: 1,
+  QF: 1,
+  SF: 1,
+  '3RD': 1,
+  FINAL: 1
 };
 
 // Knockout matches — organized by round key
