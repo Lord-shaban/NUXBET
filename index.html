@@ -92,18 +92,18 @@
   <!-- ========== MAIN ========== -->
   <main class="main" id="app-main" style="display:none">
 
-    <!-- ====== HOME — REDESIGNED ====== -->
-    <section class="page active" id="page-home">
+    <!-- ====== HOME — KNOCKOUT FOCUSED ====== -->
+    <section class="page" id="page-home">
 
       <!-- Hero -->
       <div class="hero">
         <div class="hero-content">
-          <div class="hero-badge">FIFA WORLD CUP 2026 ⚔️ KNOCKOUT STAGE</div>
-          <h1>الأدوار الإقصائية<br><span class="accent">كأس العالم</span></h1>
-          <p class="hero-sub">مرحلة خروج المغلوب بدأت! توقع نتائج المباريات من دور الـ 32 حتى النهائي — النقاط تتضاعف كل دور!</p>
+          <div class="hero-badge">⚔️ KNOCKOUT STAGE — FIFA 2026</div>
+          <h1>مرحلة<br><span class="accent">خروج المغلوب</span></h1>
+          <p class="hero-sub">الإقصائيات بدأت! توقع من دور الـ 32 حتى النهائي — النقاط تتضاعف كل دور!</p>
           <div class="hero-actions">
-            <button class="hero-cta" id="hero-start-btn">توقع الإقصائيات الآن</button>
-            <button class="hero-cta-outline" id="hero-howto-btn">كيف تلعب؟</button>
+            <button class="hero-cta" id="hero-start-btn">توقع الإقصائيات ⚔️</button>
+            <button class="hero-cta-outline" id="hero-league-btn">ترتيب الدوري 📊</button>
           </div>
         </div>
         <div class="hero-decoration">
@@ -113,32 +113,12 @@
         </div>
       </div>
 
-      <!-- Quick Stats -->
-      <div class="stats-row" id="home-stats">
-        <div class="stat-chip ani">
-          <div class="stat-icon players-icon"></div>
-          <div class="val" id="stat-players">0</div>
-          <div class="lbl">لاعب مسجل</div>
-        </div>
-        <div class="stat-chip ani">
-          <div class="stat-icon teams-icon"></div>
-          <div class="val">48</div>
-          <div class="lbl">منتخب</div>
-        </div>
-        <div class="stat-chip ani">
-          <div class="stat-icon matches-icon"></div>
-          <div class="val">104</div>
-          <div class="lbl">مباراة كلية</div>
-        </div>
-        <div class="stat-chip ani">
-          <div class="stat-icon golden-icon"></div>
-          <div class="val">×2</div>
-          <div class="lbl">مباراة ذهبية</div>
-        </div>
-      </div>
+      <!-- Mini League Table -->
+      <div class="sec-title"><span class="bar"></span> ترتيب الدوري</div>
+      <div id="home-league-mini"></div>
 
       <!-- Countdown -->
-      <div class="sec-title"><span class="bar"></span> الموعد النهائي للتوقع</div>
+      <div class="sec-title" style="margin-top:28px"><span class="bar"></span> الموعد النهائي لتوقع الإقصائيات</div>
       <div class="countdown-wrap">
         <div class="cd-box"><div class="cd-val" id="cd-d">00</div><div class="cd-lbl">يوم</div></div>
         <div class="cd-sep">:</div>
@@ -149,54 +129,55 @@
         <div class="cd-box"><div class="cd-val" id="cd-s">00</div><div class="cd-lbl">ثانية</div></div>
       </div>
 
-      <!-- HOW TO PLAY — integrated -->
-      <div class="sec-title" style="margin-top:40px" id="howto-section"><span class="bar"></span> كيف تلعب؟</div>
+      <!-- Quick Stats -->
+      <div class="stats-row" id="home-stats" style="margin-top:24px">
+        <div class="stat-chip ani">
+          <div class="stat-icon players-icon"></div>
+          <div class="val" id="stat-players">0</div>
+          <div class="lbl">لاعب مسجل</div>
+        </div>
+        <div class="stat-chip ani">
+          <div class="stat-icon matches-icon"></div>
+          <div class="val">32</div>
+          <div class="lbl">مباراة إقصائية</div>
+        </div>
+        <div class="stat-chip ani">
+          <div class="stat-icon golden-icon"></div>
+          <div class="val">×4</div>
+          <div class="lbl">مضاعف النهائي</div>
+        </div>
+      </div>
+
+      <!-- Knockout Multipliers -->
+      <div class="sec-title" style="margin-top:32px" id="howto-section"><span class="bar"></span> مضاعفات النقاط</div>
+      <div class="points-table">
+        <div class="pt-row pt-header"><div>الدور</div><div>الوصف</div><div>المضاعف</div></div>
+        <div class="pt-row exact"><div>⚔️ دور 32</div><div>16 مباراة — أول أدوار خروج المغلوب</div><div class="pt-val">×1</div></div>
+        <div class="pt-row diff"><div>🔥 دور 16</div><div>8 مباريات — الفائزون من دور 32</div><div class="pt-val">×1.5</div></div>
+        <div class="pt-row correct"><div>🏅 ربع النهائي</div><div>4 مباريات — أقوى 8 منتخبات</div><div class="pt-val">×2</div></div>
+        <div class="pt-row bonus"><div>⭐ نصف النهائي</div><div>مباراتان فقط — الطريق للنهائي</div><div class="pt-val">×3</div></div>
+        <div class="pt-row golden"><div>🏆 النهائي</div><div>المباراة الأهم — أعلى مضاعف!</div><div class="pt-val">×4</div></div>
+        <div class="pt-row question"><div>★ مباراة ذهبية</div><div>اختر مباراة واحدة كل دور لمضاعفة نقاطها</div><div class="pt-val">×2</div></div>
+      </div>
+
+      <!-- How to Play -->
+      <div class="sec-title" style="margin-top:32px"><span class="bar"></span> كيف تلعب؟</div>
       <div class="howto-cards">
         <div class="howto-card ani">
           <div class="howto-step">1</div>
           <h3>توقّع النتائج</h3>
-          <p>كل جولة تتوقع نتيجة كل مباراة (عدد أهداف كل فريق). لازم تحفظ توقعاتك قبل الموعد النهائي!</p>
+          <p>ادخل صفحة الإقصائيات وتوقع نتيجة كل مباراة قبل انطلاقها. لازم تحفظ قبل بداية المباراة!</p>
         </div>
         <div class="howto-card gold-card ani">
           <div class="howto-step gold">★</div>
           <h3>المباراة الذهبية</h3>
-          <p>كل جولة <strong>لازم</strong> تختار مباراة واحدة كمباراة ذهبية. نقاط المباراة الذهبية <strong>تتضاعف ×2</strong>!</p>
+          <p>كل دور اختار مباراة واحدة كمباراة ذهبية — نقاطها <strong>تتضاعف ×2</strong> فوق المضاعف!</p>
         </div>
         <div class="howto-card ani">
           <div class="howto-step">3</div>
           <h3>تنافس!</h3>
-          <p>اجمع أكبر عدد من النقاط لتصعد في الدوري. في الكأس، تواجه لاعب عشوائي كل جولة هيد تو هيد!</p>
+          <p>كل ما تتقدم في الأدوار، النقاط تتضاعف أكتر. النهائي لوحده ×4! اجمع أكبر نقاط لتتصدر الدوري.</p>
         </div>
-      </div>
-
-      <!-- Points System -->
-      <div class="sec-title" style="margin-top:32px"><span class="bar"></span> نظام النقاط</div>
-      <div class="points-table">
-        <div class="pt-row pt-header"><div>الحالة</div><div>الوصف</div><div>النقاط</div></div>
-        <div class="pt-row exact"><div>توقع دقيق</div><div>توقعت النتيجة بالظبط (مثال: توقعت 2-1 والنتيجة 2-1)</div><div class="pt-val">5</div></div>
-        <div class="pt-row diff"><div>فرق أهداف صحيح</div><div>توقعت نفس فرق الأهداف (مثال: توقعت 3-1 والنتيجة 2-0 — فرق 2)</div><div class="pt-val">3</div></div>
-        <div class="pt-row correct"><div>اتجاه صحيح</div><div>توقعت الفائز/التعادل صح بس النتيجة وفرق الأهداف غلط</div><div class="pt-val">1</div></div>
-        <div class="pt-row bonus"><div>بونص توقع فريد</div><div>لو أنت الوحيد اللي توقعت فوز طرف ومحدش غيرك توقعه</div><div class="pt-val">+3</div></div>
-        <div class="pt-row wrong"><div>توقع خاطئ</div><div>توقعت غلط خالص (مثال: توقعت 2-0 والنتيجة 0-1)</div><div class="pt-val">0</div></div>
-        <div class="pt-row penalty"><div>عقوبة 6 أخطاء</div><div>لو غلطت في 6 مباريات أو أكتر في جولة واحدة</div><div class="pt-val">-2</div></div>
-        <div class="pt-row golden"><div>مباراة ذهبية</div><div>نقاط المباراة اللي اخترتها كذهبية <strong>تتضاعف ×2</strong></div><div class="pt-val">×2</div></div>
-        <div class="pt-row question"><div>سؤال الجولة</div><div>الأدمن يحط سؤال كل جولة — الإجابة الصح بتديك نقاط إضافية</div><div class="pt-val">3</div></div>
-      </div>
-      <div class="howto-example ani">
-        <h4>مثال:</h4>
-        <p>توقعت مباراة البرازيل ضد المغرب بنتيجة <strong>2-1</strong> واخترتها كمباراة ذهبية</p>
-        <p>النتيجة الفعلية: <strong>2-1</strong> = توقع دقيق = <strong>5 نقاط × 2 = 10 نقاط!</strong></p>
-      </div>
-
-      <!-- Groups -->
-      <div class="sec-title" style="margin-top:40px"><span class="bar"></span> مجموعات كأس العالم 2026</div>
-      <div class="groups-grid" id="groups-grid"></div>
-
-      <!-- Mini League on Home -->
-      <div class="sec-title" style="margin-top:40px"><span class="bar"></span> ترتيب الدوري</div>
-      <div id="home-league-mini"></div>
-      <div style="text-align:center;margin-top:12px">
-        <button class="hero-cta-outline" onclick="go('league')" style="font-size:0.8rem;padding:8px 24px">عرض الترتيب الكامل</button>
       </div>
 
     </section>

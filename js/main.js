@@ -160,7 +160,7 @@ function onAuth(user) {
     overlay.style.display = 'none';
     header.style.display = ''; main.style.display = ''; footer.style.display = '';
     loadUserData(user.uid);
-    go('home');
+    go('knockout');
   } else {
     overlay.style.display = 'flex';
     header.style.display = 'none'; main.style.display = 'none'; footer.style.display = 'none';
@@ -211,7 +211,7 @@ function go(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
 
-  if (page === 'home') { renderGroups(); startCountdown(); renderHomeMiniLeague(); }
+  if (page === 'home') { startCountdown(); renderHomeMiniLeague(); }
   if (page === 'predictions') renderPredictions(activeMD);
   if (page === 'knockout') renderKnockout(activeKORound);
   if (page === 'league') renderLeague();
@@ -1628,9 +1628,7 @@ function init() {
     if (currentUser) goProfile(currentUser.uid);
   });
   document.getElementById('hero-start-btn')?.addEventListener('click', () => go('knockout'));
-  document.getElementById('hero-howto-btn')?.addEventListener('click', () => {
-    document.getElementById('howto-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  document.getElementById('hero-league-btn')?.addEventListener('click', () => go('league'));
 
   buildAvatarGrid();
   loadResults();
