@@ -1742,50 +1742,100 @@ input, select { font-family: inherit; outline: none; }
 }
 
 /* ============================================================
-   MOBILE BOTTOM NAV
+   MOBILE BOTTOM NAV — Floating Pill
    ============================================================ */
 .mobile-bottom-nav {
-  display: none; /* hidden on desktop */
+  display: none;
 }
 
 @media (max-width: 600px) {
   .mobile-bottom-nav {
     display: flex !important;
-    position: fixed; bottom: 0; left: 0; right: 0;
+    position: fixed;
+    bottom: 14px; left: 14px; right: 14px;
     z-index: 1000;
-    background: rgba(10, 2, 22, 0.95);
-    backdrop-filter: blur(24px) saturate(1.8);
-    -webkit-backdrop-filter: blur(24px) saturate(1.8);
-    border-top: 1px solid rgba(150, 60, 255, 0.15);
-    padding: 6px 4px calc(env(safe-area-inset-bottom, 6px) + 6px);
-    justify-content: space-around; align-items: center;
+    background: rgba(15, 5, 30, 0.88);
+    backdrop-filter: blur(28px) saturate(2);
+    -webkit-backdrop-filter: blur(28px) saturate(2);
+    border: 1px solid rgba(150, 60, 255, 0.12);
+    border-radius: 22px;
+    padding: 4px 6px;
+    justify-content: space-around;
+    align-items: center;
     gap: 0;
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.6), 0 -2px 20px rgba(150, 60, 255, 0.08);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.5),
+      0 0 0 0.5px rgba(255,255,255,0.04) inset,
+      0 0 16px rgba(150, 60, 255, 0.06);
+    animation: mobNavSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
+
+  @keyframes mobNavSlideUp {
+    from { transform: translateY(80px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
   .mob-nav-btn {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; flex: 1;
-    padding: 6px 2px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px; flex: 1;
+    padding: 5px 2px;
     background: none; border: none; cursor: pointer;
-    color: var(--text-muted); font-size: 0.55rem; font-weight: 600;
-    transition: all 0.2s ease; border-radius: 12px;
+    color: rgba(255,255,255,0.35);
+    font-size: 0.5rem; font-weight: 500;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 14px;
     font-family: inherit;
+    position: relative;
   }
+
   .mob-nav-btn svg {
-    stroke: var(--text-muted); transition: all 0.2s ease;
+    width: 17px; height: 17px;
+    stroke: rgba(255,255,255,0.3);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    stroke-width: 1.8;
   }
+
+  .mob-nav-btn span {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: -0.2px;
+  }
+
+  /* Active state */
   .mob-nav-btn.active {
     color: #fff;
   }
   .mob-nav-btn.active svg {
     stroke: var(--pink);
-    filter: drop-shadow(0 0 6px rgba(233, 0, 82, 0.4));
+    filter: drop-shadow(0 0 8px rgba(233, 0, 82, 0.5));
+    transform: translateY(-1px) scale(1.1);
   }
   .mob-nav-btn.active span {
     color: var(--pink);
     font-weight: 700;
+    font-size: 0.52rem;
   }
+
+  /* Active dot indicator */
+  .mob-nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--pink);
+    box-shadow: 0 0 8px rgba(233, 0, 82, 0.6);
+    animation: dotPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes dotPop {
+    from { transform: translateX(-50%) scale(0); }
+    to   { transform: translateX(-50%) scale(1); }
+  }
+
+  /* Press effect */
   .mob-nav-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.88);
   }
 }
