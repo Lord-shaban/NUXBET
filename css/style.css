@@ -1003,6 +1003,24 @@ input, select { font-family: inherit; outline: none; }
 }
 .auth-btn:disabled::before { display: none; }
 
+.auth-note {
+  background: rgba(0, 200, 255, 0.06);
+  border: 1px solid rgba(0, 200, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.auth-note span {
+  font-size: 1rem;
+}
+.auth-note strong {
+  color: #ffcc00;
+}
+
 /* Avatar Grid - Premium */
 .avatar-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
