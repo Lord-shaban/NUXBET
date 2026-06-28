@@ -971,6 +971,10 @@ async function renderLeague() {
       const snap = await getDoc(doc(db, 'roundQuestions', `md${md}`));
       if (snap.exists()) roundQuestions[md] = snap.data();
     }
+    for (const k of KNOCKOUT_ROUND_KEYS) {
+      const snap = await getDoc(doc(db, 'roundQuestions', `ko_${k}`));
+      if (snap.exists()) roundQuestions[k] = snap.data();
+    }
   } catch (e) { console.error(e); }
 
   // Unique prediction tracking for bonus
@@ -1171,43 +1175,56 @@ async function renderHomeMiniLeague() {
     snap.forEach(d => {
       const data = d.data();
       if (!allPreds[data.userId]) allPreds[data.userId] = {};
-      allPreds[data.userId][data.matchday] = { preds: data.preds || {}, goldenMatch: data.goldenMatch };
+      const key = isNaN(data.matchday) ? data.matchday : +data.matchday;
+      allPreds[data.userId][key] = { preds: data.preds || {}, goldenMatch: data.goldenMatch };
     });
   } catch (e) { console.error(e); }
 
+  // Load knockout round questions
+  const koRoundQuestions = {};
+  try {
+    for (const k of KNOCKOUT_ROUND_KEYS) {
+      const snap = await getDoc(doc(db, 'roundQuestions', `ko_${k}`));
+      if (snap.exists()) koRoundQuestions[k] = snap.data();
+    }
+  } catch (e) {}
+
   const scores = Object.entries(allUsers).map(([uid, user]) => {
-    let totalPts = 0;
-    ALL_MATCHDAY_KEYS.forEach(md => {
+    let koPts = 0;
+    // Only count knockout matchdays for homepage mini league
+    KNOCKOUT_ROUND_KEYS.forEach(md => {
       const userPreds = allPreds[uid]?.[md];
       if (!userPreds) return;
       const golden = userPreds.goldenMatch;
       const multiplier = getKnockoutMultiplier(md);
-      let mdPts = 0, wrongCount = 0;
+      let mdPts = 0;
       Object.entries(userPreds.preds).forEach(([matchId, pred]) => {
         const result = getResult(matchId, md);
         if (!result) return;
         let pts = calcPts(pred, result);
         pts = Math.round(pts * multiplier);
         if (matchId === golden) pts *= 2;
-        if (calcPtsLevel(pred, result) === 'wrong') wrongCount++;
-        mdPts += pts; totalPts += pts;
+        mdPts += pts;
       });
-      if (typeof md === 'number' && wrongCount >= 6) { totalPts -= 2; }
+      // Round question bonus for knockout
+      const rq = koRoundQuestions[md];
+      if (rq && rq.reviews && rq.reviews[uid] === true) { mdPts += 3; }
+      koPts += mdPts;
     });
-    return { uid, name: user.displayName, avatar: user.avatar, points: totalPts };
+    return { uid, name: user.displayName, avatar: user.avatar, points: koPts };
   });
 
   scores.sort((a, b) => b.points - a.points);
   const top5 = scores.slice(0, 5);
 
   if (top5.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="font-size:0.8rem">لسه محدش سجل توقعات</div>';
+    el.innerHTML = '<div class="empty-state" style="font-size:0.8rem">لسه محدش سجل توقعات إقصائيات</div>';
     return;
   }
 
   el.innerHTML = `<div class="mini-league">
     <div class="lg-table">
-      <div class="lg-hdr"><div>#</div><div>اللاعب</div><div>النقاط</div></div>
+      <div class="lg-hdr"><div>#</div><div>اللاعب</div><div>نقاط الإقصائيات</div></div>
       ${top5.map((p, i) => {
         const r = i + 1;
         let rkHTML = r === 1 ? '<span class="rk-badge g">1</span>' : r === 2 ? '<span class="rk-badge s">2</span>' : r === 3 ? '<span class="rk-badge b">3</span>' : `<span class="rk-num">${r}</span>`;
@@ -1481,6 +1498,10 @@ async function renderProfile(uid) {
     for (const md of [1, 2, 3]) {
       const snap = await getDoc(doc(db, 'roundQuestions', `md${md}`));
       if (snap.exists()) roundQuestions[md] = snap.data();
+    }
+    for (const k of KNOCKOUT_ROUND_KEYS) {
+      const snap = await getDoc(doc(db, 'roundQuestions', `ko_${k}`));
+      if (snap.exists()) roundQuestions[k] = snap.data();
     }
   } catch (e) {}
 
