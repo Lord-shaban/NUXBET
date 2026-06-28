@@ -1466,6 +1466,38 @@ input, select { font-family: inherit; outline: none; }
 }
 .pf-name { font-size: 1.4rem; font-weight: 900; color: var(--text-primary); margin: 0 0 4px; }
 .pf-you { font-size: 0.72rem; color: var(--green); font-weight: 600; }
+.pf-edit-name-btn {
+  background: rgba(150,60,255,0.1); border: 1px solid rgba(150,60,255,0.2);
+  color: var(--text-muted); font-size: 0.75rem; padding: 4px 10px;
+  border-radius: 8px; cursor: pointer; margin-top: 2px;
+  transition: all 0.2s;
+}
+.pf-edit-name-btn:hover { background: rgba(150,60,255,0.2); color: var(--text-primary); }
+.pf-edit-name-wrap {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 4px; justify-content: center;
+}
+.pf-edit-name-input {
+  padding: 7px 12px; border-radius: 8px; border: 1.5px solid rgba(150,60,255,0.15);
+  background: rgba(13,1,24,0.6); color: var(--text-primary);
+  font-size: 0.82rem; width: 140px; text-align: center;
+}
+.pf-edit-name-input:focus {
+  border-color: var(--green); outline: none;
+  box-shadow: 0 0 0 2px rgba(0,255,135,0.08);
+}
+.pf-edit-name-save {
+  padding: 6px 14px; border-radius: 8px; border: none;
+  background: var(--green); color: #000; font-weight: 700;
+  font-size: 0.75rem; cursor: pointer; transition: opacity 0.2s;
+}
+.pf-edit-name-save:hover { opacity: 0.85; }
+.pf-edit-name-save:disabled { opacity: 0.5; cursor: wait; }
+.pf-edit-name-cancel {
+  padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  background: transparent; color: var(--text-dim); font-size: 0.75rem; cursor: pointer;
+}
+.pf-edit-name-cancel:hover { color: var(--text-muted); border-color: rgba(255,255,255,0.2); }
 .pf-joined { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 10px; }
 .pf-total-pts {
   font-size: 2.6rem; font-weight: 900; color: var(--green);

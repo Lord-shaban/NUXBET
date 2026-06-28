@@ -1629,7 +1629,13 @@ async function renderProfile(uid, reqId) {
     <div class="pf-header">
       <button class="pf-back" onclick="go('league')">← الدوري</button>
       <div class="pf-avatar-wrap">${avHTML}</div>
-      <h2 class="pf-name">${user.displayName}${isMe ? ' <span class="pf-you">(أنت)</span>' : ''}</h2>
+      <h2 class="pf-name" id="pf-display-name">${user.displayName}${isMe ? ' <span class="pf-you">(أنت)</span>' : ''}</h2>
+      ${isMe ? '<button class="pf-edit-name-btn" id="pf-edit-name-btn" title="تعديل الاسم">✏️</button>' : ''}
+      <div class="pf-edit-name-wrap" id="pf-edit-name-wrap" style="display:none">
+        <input type="text" class="pf-edit-name-input" id="pf-edit-name-input" maxlength="20" placeholder="الاسم الجديد">
+        <button class="pf-edit-name-save" id="pf-edit-name-save">حفظ</button>
+        <button class="pf-edit-name-cancel" id="pf-edit-name-cancel">إلغاء</button>
+      </div>
       ${joinDate ? `<div class="pf-joined">انضم: ${joinDate}</div>` : ''}
       <div class="pf-total-pts">${totalPts}<span> نقطة</span></div>
     </div>
@@ -1720,6 +1726,49 @@ async function renderProfile(uid, reqId) {
   });
 
   container.innerHTML = html;
+
+  // Edit name handlers
+  const editBtn = document.getElementById('pf-edit-name-btn');
+  const editWrap = document.getElementById('pf-edit-name-wrap');
+  const editInput = document.getElementById('pf-edit-name-input');
+  const saveBtn = document.getElementById('pf-edit-name-save');
+  const cancelBtn = document.getElementById('pf-edit-name-cancel');
+  const nameEl = document.getElementById('pf-display-name');
+
+  if (editBtn && editWrap) {
+    editBtn.addEventListener('click', () => {
+      editInput.value = user.displayName;
+      editWrap.style.display = 'flex';
+      editBtn.style.display = 'none';
+      editInput.focus();
+    });
+    cancelBtn.addEventListener('click', () => {
+      editWrap.style.display = 'none';
+      editBtn.style.display = '';
+    });
+    saveBtn.addEventListener('click', async () => {
+      const newName = editInput.value.trim();
+      if (!newName || newName.length < 2) { toast('الاسم لازم يكون حرفين على الأقل', 'warn'); return; }
+      if (newName.length > 20) { toast('الاسم طويل جداً (أقصى 20 حرف)', 'warn'); return; }
+      saveBtn.disabled = true; saveBtn.textContent = 'جاري الحفظ...';
+      try {
+        await updateProfile(auth.currentUser, { displayName: newName });
+        await setDoc(doc(db, 'users', uid), { displayName: newName }, { merge: true });
+        allUsers[uid].displayName = newName;
+        if (nameEl) nameEl.innerHTML = `${newName} <span class="pf-you">(أنت)</span>`;
+        const headerName = document.getElementById('user-name');
+        if (headerName) headerName.textContent = newName;
+        editWrap.style.display = 'none';
+        editBtn.style.display = '';
+        toast('تم تغيير الاسم بنجاح!');
+      } catch (e) {
+        console.error('Error updating name:', e);
+        toast('حصل خطأ في تغيير الاسم', 'error');
+      }
+      saveBtn.disabled = false; saveBtn.textContent = 'حفظ';
+    });
+    editInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveBtn.click(); });
+  }
 }
 
 // ============================================================
