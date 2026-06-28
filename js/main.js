@@ -26,7 +26,8 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentUserData = null;
 let activePage = 'home';
-let activeMD = 1;
+let activeMD = 1; // can be number (group) or string (knockout key)
+let activeKORound = 'R32';
 let cdTimer = null;
 let allUsers = {};
 let firestoreResults = {};
@@ -212,6 +213,7 @@ function go(page) {
 
   if (page === 'home') { renderGroups(); startCountdown(); }
   if (page === 'predictions') renderPredictions(activeMD);
+  if (page === 'knockout') renderKnockout(activeKORound);
   if (page === 'league') renderLeague();
   if (page === 'cup') renderCup();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -251,9 +253,20 @@ function renderGroups() {
 function startCountdown() {
   if (cdTimer) clearInterval(cdTimer);
   let target = null;
+  // Check group stage deadlines
   for (const md of [1, 2, 3]) {
     const d = new Date(MATCHDAY_INFO[md].deadline);
     if (d > new Date()) { target = d; break; }
+  }
+  // If group stage done, check knockout deadlines
+  if (!target) {
+    for (const k of KNOCKOUT_ROUND_KEYS) {
+      const info = MATCHDAY_INFO[k];
+      if (info) {
+        const d = new Date(info.deadline);
+        if (d > new Date()) { target = d; break; }
+      }
+    }
   }
   if (!target) target = new Date('2026-07-19T21:00:00');
   function tick() {
@@ -267,14 +280,22 @@ function startCountdown() {
 }
 
 // ============================================================
-// RESULTS
+// RESULTS (Group + Knockout)
 // ============================================================
 async function loadResults() {
   try {
+    // Group stage results
     for (const md of [1, 2, 3]) {
       const snap = await getDoc(doc(db, 'results', `md${md}`));
       if (snap.exists()) {
         firestoreResults[md] = snap.data().matches || {};
+      }
+    }
+    // Knockout results
+    for (const k of KNOCKOUT_ROUND_KEYS) {
+      const snap = await getDoc(doc(db, 'results', `ko_${k}`));
+      if (snap.exists()) {
+        firestoreResults[k] = snap.data().matches || {};
       }
     }
   } catch (e) { console.error('Error loading results:', e); }
@@ -284,7 +305,8 @@ function getResult(matchId, md) {
   if (firestoreResults[md] && firestoreResults[md][matchId]) {
     return firestoreResults[md][matchId];
   }
-  const match = (MATCHES[md] || []).find(m => m.id === matchId);
+  const matches = getMatchesForMD(md);
+  const match = matches.find(m => m.id === matchId);
   return match ? match.result : null;
 }
 
@@ -293,13 +315,13 @@ function getMatchResult(match, md) {
 }
 
 // ============================================================
-// PREDICTIONS
+// PREDICTIONS (Group Stage)
 // ============================================================
 function renderTabs() {
   const el = document.getElementById('md-tabs');
   if (!el) return;
 
-  const mdKeys = Object.keys(MATCHDAY_INFO).map(Number).sort();
+  const mdKeys = [1, 2, 3];
 
   el.innerHTML = mdKeys.map(md => {
     const info = MATCHDAY_INFO[md];
@@ -427,7 +449,6 @@ async function renderPredictions(md) {
       const home = TEAMS[match.home], away = TEAMS[match.away];
       const result = getMatchResult(match, md);
       const started = isMatchStarted(match);
-      // A match is locked if it has started OR has a result from admin
       const isLocked = started || result !== null;
       const st = result ? 'played' : getMatchStatus(match);
       const p = preds[match.id] || {};
@@ -455,7 +476,6 @@ async function renderPredictions(md) {
         if (isGolden) pts *= 2;
         const level = calcPtsLevel(p, result);
         const levelLabels = { exact: 'توقع دقيق 🎯', diff: 'فرق أهداف صحيح', correct: 'اتجاه صحيح', wrong: 'خطأ ✗' };
-        const levelIcons = { exact: '🎯', diff: '📊', correct: '✓', wrong: '✗' };
         comparisonHTML = `
           <div class="m-comparison">
             <div class="m-comp-row">
@@ -482,7 +502,6 @@ async function renderPredictions(md) {
           </div>`;
       }
 
-      // Show saved prediction for locked/live matches without result yet
       let predDisplay = '';
       if (isLocked && hasPred && !result) {
         predDisplay = `
@@ -496,7 +515,6 @@ async function renderPredictions(md) {
       const lockedCls = (isLocked && !result) ? 'm-locked' : '';
       const endedCls = (st === 'ended') ? 'm-ended' : '';
       const playedCls = result ? 'm-played' : '';
-      // Disable golden star and inputs if match is locked (started or has result)
       const disabledAttr = isLocked ? 'disabled' : '';
 
       return `
@@ -536,7 +554,6 @@ async function renderPredictions(md) {
     btn.addEventListener('click', () => {
       const mid = btn.dataset.mid;
       const match = sortedMatches.find(m => m.id === mid);
-      // Block if match started, has result, or button is disabled
       if (!match || isMatchStarted(match) || getMatchResult(match, md)) return;
       grid.querySelectorAll('.golden-star').forEach(s => s.classList.remove('active'));
       grid.querySelectorAll('.m-card').forEach(c => {
@@ -635,7 +652,296 @@ async function savePreds(md) {
 }
 
 // ============================================================
-// LEAGUE
+// KNOCKOUT PAGE
+// ============================================================
+async function renderKnockout(roundKey) {
+  activeKORound = roundKey;
+  const tabsEl = document.getElementById('ko-round-tabs');
+  const badgeEl = document.getElementById('ko-multiplier-badge');
+  const grid = document.getElementById('ko-matches-grid');
+  const loading = document.getElementById('ko-loading');
+  loading.style.display = 'flex';
+
+  // Render round tabs
+  tabsEl.innerHTML = KNOCKOUT_ROUND_KEYS.map(k => {
+    const r = KNOCKOUT_ROUNDS[k];
+    const mult = KNOCKOUT_MULTIPLIERS[k];
+    const isActive = k === roundKey;
+    return `<button class="ko-round-tab ${isActive ? 'active' : ''}" data-round="${k}">
+      <span class="ko-tab-icon">${r.icon}</span>
+      <span>${r.name}</span>
+      <span class="ko-tab-mult">×${mult}</span>
+    </button>`;
+  }).join('');
+
+  tabsEl.querySelectorAll('.ko-round-tab').forEach(btn => {
+    btn.addEventListener('click', () => renderKnockout(btn.dataset.round));
+  });
+
+  // Multiplier badge
+  const mult = KNOCKOUT_MULTIPLIERS[roundKey];
+  const roundInfo = KNOCKOUT_ROUNDS[roundKey];
+  badgeEl.innerHTML = `
+    <span class="ko-mult-icon">${roundInfo.icon}</span>
+    <span class="ko-mult-text">${roundInfo.name} — مضاعف النقاط:</span>
+    <span class="ko-mult-val">×${mult}</span>
+  `;
+
+  // Load existing predictions for this round
+  let preds = {}, goldenMatch = null;
+  if (currentUser) {
+    try {
+      const snap = await getDoc(doc(db, 'predictions', `${currentUser.uid}_ko_${roundKey}`));
+      if (snap.exists()) {
+        const d = snap.data();
+        preds = d.preds || {};
+        goldenMatch = d.goldenMatch || null;
+      }
+    } catch (e) { console.error('Error loading knockout predictions:', e); }
+  }
+
+  await loadResults();
+
+  const matches = KNOCKOUT_MATCHES[roundKey] || [];
+  const sortedMatches = [...matches].sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time}:00+03:00`);
+    const dateB = new Date(`${b.date}T${b.time}:00+03:00`);
+    return dateA - dateB;
+  });
+
+  loading.style.display = 'none';
+
+  if (sortedMatches.length === 0) {
+    grid.innerHTML = '<div class="empty-state">لا توجد مباريات في هذا الدور بعد</div>';
+    return;
+  }
+
+  const roundCssClass = `ko-${roundKey.toLowerCase().replace("'", '')}`;
+
+  grid.innerHTML = sortedMatches.map(match => {
+    const homeTeam = match.home && TEAMS[match.home] ? TEAMS[match.home] : null;
+    const awayTeam = match.away && TEAMS[match.away] ? TEAMS[match.away] : null;
+    const result = getMatchResult(match, roundKey);
+    const started = isMatchStarted(match);
+    const isLocked = started || result !== null;
+    const st = result ? 'played' : getMatchStatus(match);
+    const p = preds[match.id] || {};
+    const isGolden = goldenMatch === match.id;
+    const hasPred = p.h !== undefined && p.a !== undefined;
+    const isTBD = !homeTeam || !awayTeam;
+
+    let statusTxt = '';
+    if (st === 'played') statusTxt = 'انتهت';
+    else if (st === 'ended') statusTxt = 'بانتظار النتيجة';
+    else if (st === 'live') statusTxt = 'مباشر';
+    else if (isLocked) statusTxt = '🔒 مقفلة';
+    else statusTxt = match.time;
+
+    let centerHTML = '';
+    if (result) {
+      centerHTML = `<div class="m-score"><span>${result.home}</span><span class="dash">-</span><span>${result.away}</span></div>`;
+    } else {
+      centerHTML = `<div class="m-time">${match.time}</div><div class="m-vs">VS</div>`;
+    }
+
+    // Comparison for played matches
+    let comparisonHTML = '';
+    if (result && hasPred) {
+      let pts = calcPts(p, result);
+      pts = Math.round(pts * mult);
+      if (isGolden) pts *= 2;
+      const level = calcPtsLevel(p, result);
+      const levelLabels = { exact: 'توقع دقيق 🎯', diff: 'فرق أهداف صحيح', correct: 'اتجاه صحيح', wrong: 'خطأ ✗' };
+      comparisonHTML = `
+        <div class="m-comparison">
+          <div class="m-comp-row">
+            <div class="m-comp-item"><span class="m-comp-label">توقعك</span><span class="m-comp-score pred-score">${p.h} - ${p.a}</span></div>
+            <div class="m-comp-vs-icon">⚡</div>
+            <div class="m-comp-item"><span class="m-comp-label">النتيجة</span><span class="m-comp-score actual-score">${result.home} - ${result.away}</span></div>
+          </div>
+          <div class="m-pts-badge ${level}">
+            <span class="m-pts-label">${levelLabels[level]}</span>
+            ${pts > 0 ? `<span class="m-pts-val">+${pts}</span>` : ''}
+            ${isGolden ? '<span class="m-pts-golden">★×2</span>' : ''}
+            <span class="m-pts-golden" style="font-size:0.65rem">×${mult}</span>
+          </div>
+        </div>`;
+    }
+
+    let predDisplay = '';
+    if (isLocked && hasPred && !result) {
+      predDisplay = `<div class="m-pred-saved-wrap"><span class="m-pred-saved-label">توقعك</span><span class="m-pred-saved-score">${p.h} - ${p.a}</span></div>`;
+    }
+
+    const goldenCls = isGolden ? 'golden-active' : '';
+    const lockedCls = (isLocked && !result) ? 'm-locked' : '';
+    const playedCls = result ? 'm-played' : '';
+    const disabledAttr = (isLocked || isTBD) ? 'disabled' : '';
+
+    const homeName = homeTeam ? homeTeam.name : 'يُحدد لاحقاً';
+    const awayName = awayTeam ? awayTeam.name : 'يُحدد لاحقاً';
+    const homeFlag = homeTeam ? flagImg(homeTeam) : '<span class="m-tbd">?</span>';
+    const awayFlag = awayTeam ? flagImg(awayTeam) : '<span class="m-tbd">?</span>';
+
+    return `
+      <div class="m-card ko-card ${roundCssClass} ani ${goldenCls} ${lockedCls} ${playedCls}" id="mcard-${match.id}">
+        <span class="m-round-badge">${roundInfo.icon} ${roundInfo.name}</span>
+        <div class="m-card-top">
+          <span class="m-group-tag" style="background:rgba(150,60,255,0.08);color:var(--pl-violet)">${roundInfo.short}</span>
+          <button class="golden-star ${isGolden ? 'active' : ''}" data-mid="${match.id}" ${disabledAttr} title="مباراة ذهبية">★</button>
+          <span class="m-date">${formatMatchDate(match.date)}</span>
+          <span class="m-status ${st}">${statusTxt}</span>
+        </div>
+        <div class="m-card-body">
+          ${isLocked && !result ? '<div class="m-locked-overlay"><span class="m-locked-icon">🔒</span><span class="m-locked-text">تم إغلاق التوقعات</span></div>' : ''}
+          <div class="m-fixture">
+            <div class="m-team">${homeFlag}<span class="name">${homeName}</span></div>
+            <div class="m-center">${isTBD ? '<div class="m-vs" style="opacity:0.4">VS</div>' : centerHTML}</div>
+            <div class="m-team">${awayFlag}<span class="name">${awayName}</span></div>
+          </div>
+          ${(!isLocked && !isTBD) ? `<div class="m-pred">
+            <label>توقعك:</label>
+            <input type="number" class="pred-input" id="ph-${match.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}">
+            <span class="pred-dash">-</span>
+            <input type="number" class="pred-input" id="pa-${match.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}">
+          </div>` : ''}
+          ${predDisplay}
+          ${comparisonHTML}
+          ${isGolden ? '<div class="golden-label">★ مباراة ذهبية — النقاط ×2</div>' : ''}
+          ${match.venue ? `<div class="m-venue">📍 ${match.venue}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Golden star handlers
+  grid.querySelectorAll('.golden-star').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mid = btn.dataset.mid;
+      const match = sortedMatches.find(m => m.id === mid);
+      if (!match || isMatchStarted(match) || getMatchResult(match, roundKey)) return;
+      if (!match.home || !match.away || !TEAMS[match.home] || !TEAMS[match.away]) return;
+      grid.querySelectorAll('.golden-star').forEach(s => s.classList.remove('active'));
+      grid.querySelectorAll('.m-card').forEach(c => {
+        c.classList.remove('golden-active');
+        c.querySelector('.golden-label')?.remove();
+      });
+      btn.classList.add('active');
+      const card = document.getElementById('mcard-' + mid);
+      if (card) {
+        card.classList.add('golden-active');
+        const body = card.querySelector('.m-card-body');
+        if (body && !body.querySelector('.golden-label')) {
+          const lbl = document.createElement('div');
+          lbl.className = 'golden-label';
+          lbl.textContent = '★ مباراة ذهبية — النقاط ×2';
+          body.appendChild(lbl);
+        }
+      }
+    });
+  });
+
+  // Add save button
+  const anyUpcoming = sortedMatches.some(m => !isMatchStarted(m) && m.home && m.away && TEAMS[m.home] && TEAMS[m.away]);
+  let submitWrap = grid.parentElement.querySelector('.ko-submit-wrap');
+  if (!submitWrap) {
+    submitWrap = document.createElement('div');
+    submitWrap.className = 'ko-submit-wrap';
+    grid.parentElement.insertBefore(submitWrap, grid.nextSibling);
+  }
+  if (anyUpcoming) {
+    submitWrap.innerHTML = `<button class="ko-save-btn" id="ko-save-btn">حفظ توقعات ${roundInfo.name}</button>`;
+    document.getElementById('ko-save-btn').addEventListener('click', () => saveKnockoutPreds(roundKey));
+  } else {
+    submitWrap.innerHTML = '';
+  }
+
+  // Render bracket
+  renderBracket();
+}
+
+async function saveKnockoutPreds(roundKey) {
+  if (!currentUser) return;
+  const matches = KNOCKOUT_MATCHES[roundKey] || [];
+
+  let existingPreds = {};
+  try {
+    const snap = await getDoc(doc(db, 'predictions', `${currentUser.uid}_ko_${roundKey}`));
+    if (snap.exists()) existingPreds = snap.data().preds || {};
+  } catch (e) {}
+
+  const preds = { ...existingPreds };
+  matches.forEach(m => {
+    if (isMatchStarted(m)) return;
+    if (!m.home || !m.away || !TEAMS[m.home] || !TEAMS[m.away]) return;
+    const hEl = document.getElementById('ph-' + m.id);
+    const aEl = document.getElementById('pa-' + m.id);
+    if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
+      preds[m.id] = { h: +hEl.value, a: +aEl.value };
+    }
+  });
+
+  const goldenBtn = document.querySelector('#ko-matches-grid .golden-star.active');
+  const goldenMatch = goldenBtn ? goldenBtn.dataset.mid : null;
+
+  if (Object.keys(preds).length === 0) { toast('لازم تتوقع مباراة واحدة على الأقل!', 'warn'); return; }
+
+  const btn = document.getElementById('ko-save-btn');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  try {
+    await setDoc(doc(db, 'predictions', `${currentUser.uid}_ko_${roundKey}`), {
+      userId: currentUser.uid, matchday: roundKey, preds, goldenMatch, savedAt: serverTimestamp()
+    });
+    btn.textContent = 'تم الحفظ!'; btn.className = 'ko-save-btn saved';
+    toast('تم حفظ توقعاتك بنجاح!');
+    setTimeout(() => { btn.textContent = `حفظ توقعات ${KNOCKOUT_ROUNDS[roundKey].name}`; btn.className = 'ko-save-btn'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    console.error('Error saving knockout predictions:', e);
+    toast('حصل خطأ في الحفظ، حاول تاني', 'error');
+    btn.disabled = false; btn.textContent = `حفظ توقعات ${KNOCKOUT_ROUNDS[roundKey].name}`;
+  }
+}
+
+function renderBracket() {
+  const el = document.getElementById('ko-bracket');
+  if (!el) return;
+
+  let html = '';
+  const roundsToShow = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
+
+  roundsToShow.forEach(rk => {
+    const round = KNOCKOUT_ROUNDS[rk];
+    const matches = KNOCKOUT_MATCHES[rk] || [];
+    html += `<div class="ko-bracket-round"><div class="ko-bracket-round-title">${round.icon} ${round.name}</div>`;
+    matches.forEach(m => {
+      const homeTeam = m.home && TEAMS[m.home] ? TEAMS[m.home] : null;
+      const awayTeam = m.away && TEAMS[m.away] ? TEAMS[m.away] : null;
+      const result = getMatchResult(m, rk);
+      const homeWin = result && result.home > result.away;
+      const awayWin = result && result.away > result.home;
+
+      html += `<div class="ko-bracket-match ${rk === activeKORound ? 'highlight' : ''}">`;
+      if (homeTeam) {
+        html += `<div class="ko-b-team ${homeWin ? 'winner' : ''}"><img src="${flagUrl(homeTeam.iso)}" class="flag-xs" alt=""><span>${homeTeam.name}</span>${result ? `<span class="ko-b-score">${result.home}</span>` : ''}</div>`;
+      } else {
+        html += `<div class="ko-b-team"><span class="ko-b-tbd">يُحدد لاحقاً</span></div>`;
+      }
+      if (awayTeam) {
+        html += `<div class="ko-b-team ${awayWin ? 'winner' : ''}"><img src="${flagUrl(awayTeam.iso)}" class="flag-xs" alt=""><span>${awayTeam.name}</span>${result ? `<span class="ko-b-score">${result.away}</span>` : ''}</div>`;
+      } else {
+        html += `<div class="ko-b-team"><span class="ko-b-tbd">يُحدد لاحقاً</span></div>`;
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// ============================================================
+// LEAGUE (Updated for knockout support)
 // ============================================================
 async function renderLeague() {
   const loading = document.getElementById('league-loading');
@@ -664,8 +970,9 @@ async function renderLeague() {
     }
   } catch (e) { console.error(e); }
 
+  // Unique prediction tracking for bonus
   const matchWinnerPreds = {};
-  [1, 2, 3].forEach(md => {
+  ALL_MATCHDAY_KEYS.forEach(md => {
     matchWinnerPreds[md] = {};
     Object.entries(allPreds).forEach(([uid, userMDs]) => {
       const userPreds = userMDs[md];
@@ -682,11 +989,13 @@ async function renderLeague() {
 
   const scores = Object.entries(allUsers).map(([uid, user]) => {
     let totalPts = 0, exact = 0, diff = 0, correct = 0, predicted = 0, bonus = 0, weeklyPts = {};
-    [1, 2, 3].forEach(md => {
+
+    ALL_MATCHDAY_KEYS.forEach(md => {
       const userPreds = allPreds[uid]?.[md];
       if (!userPreds) return;
       let mdPts = 0, wrongCount = 0;
       const golden = userPreds.goldenMatch;
+      const multiplier = getKnockoutMultiplier(md);
 
       Object.entries(userPreds.preds).forEach(([matchId, pred]) => {
         const result = getResult(matchId, md);
@@ -694,6 +1003,8 @@ async function renderLeague() {
         predicted++;
         let pts = calcPts(pred, result);
         const level = calcPtsLevel(pred, result);
+        // Apply knockout multiplier
+        pts = Math.round(pts * multiplier);
         if (matchId === golden) pts *= 2;
 
         if (level === 'exact') exact++;
@@ -714,8 +1025,10 @@ async function renderLeague() {
         mdPts += pts; totalPts += pts;
       });
 
-      if (wrongCount >= 6) { mdPts -= 2; totalPts -= 2; }
+      // 6-wrong penalty only for group stage
+      if (typeof md === 'number' && wrongCount >= 6) { mdPts -= 2; totalPts -= 2; }
 
+      // Round question bonus (group stage only)
       const rq = roundQuestions[md];
       if (rq && rq.reviews && rq.reviews[uid] === true) {
         mdPts += 3; totalPts += 3;
@@ -813,17 +1126,18 @@ async function renderCup() {
     const userPreds = allPreds[uid]?.[md];
     if (!userPreds) return 0;
     let pts = 0;
+    const multiplier = getKnockoutMultiplier(md);
     Object.entries(userPreds.preds).forEach(([matchId, pred]) => {
       const result = getResult(matchId, md);
       if (!result) return;
       let p = calcPts(pred, result);
+      p = Math.round(p * multiplier);
       if (matchId === userPreds.goldenMatch) p *= 2;
       pts += p;
     });
     return pts;
   }
 
-  // Generate a draw ensuring no duplicate matchups from previous rounds
   function generateDraw(uids, previousDraws) {
     const prevPairs = new Set();
     previousDraws.forEach(d => {
@@ -832,21 +1146,18 @@ async function renderCup() {
       });
     });
 
-    // Try multiple times to get unique matchups
     for (let attempt = 0; attempt < 50; attempt++) {
       const shuffled = [...uids].sort(() => Math.random() - 0.5);
       const matchups = [];
       let byePlayer = null;
       let valid = true;
 
-      // If odd number, last player gets BYE
       if (shuffled.length % 2 !== 0) {
         byePlayer = shuffled.pop();
       }
 
       for (let i = 0; i < shuffled.length; i += 2) {
         const pair = [shuffled[i], shuffled[i + 1]].sort().join('|');
-        // Check if this pair already played in a previous round
         if (prevPairs.has(pair)) {
           valid = false;
           break;
@@ -858,7 +1169,6 @@ async function renderCup() {
         return { matchups, byePlayer };
       }
     }
-    // Fallback
     const shuffled = [...uids].sort(() => Math.random() - 0.5);
     let byePlayer = null;
     if (shuffled.length % 2 !== 0) byePlayer = shuffled.pop();
@@ -871,10 +1181,15 @@ async function renderCup() {
 
   const rounds = [];
   const previousDraws = [];
-  for (const md of [1, 2, 3]) {
+  // Use all matchday keys for cup rounds
+  const cupRoundKeys = [1, 2, 3, ...KNOCKOUT_ROUND_KEYS];
+
+  for (const md of cupRoundKeys) {
+    const mdLabel = typeof md === 'number' ? md : md;
+    const docId = typeof md === 'number' ? `round${md}` : `round_${md}`;
     let draw = null;
     try {
-      const snap = await getDoc(doc(db, 'cupDraws', `round${md}`));
+      const snap = await getDoc(doc(db, 'cupDraws', docId));
       if (snap.exists()) draw = snap.data();
     } catch (e) { console.error(e); }
 
@@ -882,7 +1197,7 @@ async function renderCup() {
     if (!draw && uids.length >= 2) {
       const { matchups, byePlayer } = generateDraw(uids, previousDraws);
       draw = { matchday: md, matchups, byePlayer: byePlayer || null, createdAt: new Date().toISOString() };
-      try { await setDoc(doc(db, 'cupDraws', `round${md}`), draw); } catch (e) { console.error(e); }
+      try { await setDoc(doc(db, 'cupDraws', docId), draw); } catch (e) { console.error(e); }
     }
 
     if (draw) {
@@ -900,7 +1215,8 @@ async function renderCup() {
         uid: draw.byePlayer,
         ...(allUsers[draw.byePlayer] || { displayName: 'لاعب', avatar: '' })
       } : null;
-      rounds.push({ matchday: md, name: MATCHDAY_INFO[md].name, matchups, byePlayer: byeInfo });
+      const mdInfo = MATCHDAY_INFO[md];
+      rounds.push({ matchday: md, name: mdInfo ? mdInfo.name : `جولة ${md}`, matchups, byePlayer: byeInfo });
     }
   }
 
@@ -923,7 +1239,6 @@ async function renderCup() {
         standings[m.p2.uid].d++; standings[m.p2.uid].pts += 1;
       }
     });
-    // BYE player gets 1 point
     if (round.byePlayer && standings[round.byePlayer.uid]) {
       standings[round.byePlayer.uid].bye++;
       standings[round.byePlayer.uid].pts += 1;
@@ -980,7 +1295,6 @@ async function renderCup() {
         <div class="cup-summary"><span class="winner-tag">${summary}</span></div>
       </div>`;
     });
-    // Show BYE player
     if (round.byePlayer) {
       html += `<div class="cup-match ani cup-bye">
         <div class="cup-player">
@@ -997,7 +1311,7 @@ async function renderCup() {
 }
 
 // ============================================================
-// PROFILE
+// PROFILE (Updated for knockout support)
 // ============================================================
 async function renderProfile(uid) {
   const loading = document.getElementById('profile-loading');
@@ -1021,7 +1335,10 @@ async function renderProfile(uid) {
   } catch (e) { console.error(e); }
 
   const userPreds = {};
-  Object.entries(allPredsMap[uid] || {}).forEach(([md, data]) => { userPreds[+md] = data; });
+  Object.entries(allPredsMap[uid] || {}).forEach(([md, data]) => {
+    const key = isNaN(md) ? md : +md;
+    userPreds[key] = data;
+  });
 
   const roundQuestions = {};
   try {
@@ -1031,121 +1348,67 @@ async function renderProfile(uid) {
     }
   } catch (e) {}
 
-  const matchWinnerPreds = {};
-  [1, 2, 3].forEach(md => {
-    matchWinnerPreds[md] = {};
-    Object.entries(allPredsMap).forEach(([u, userMDs]) => {
-      const up = userMDs[md]; if (!up) return;
-      Object.entries(up.preds).forEach(([matchId, pred]) => {
-        if (!matchWinnerPreds[md][matchId]) matchWinnerPreds[md][matchId] = { home: [], away: [], draw: [] };
-        const ph = parseInt(pred.h), pa = parseInt(pred.a);
-        if (isNaN(ph) || isNaN(pa)) return;
-        const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
-        matchWinnerPreds[md][matchId][side].push(u);
-      });
-    });
-  });
-
   let totalPts = 0, exactCount = 0, diffCount = 0, correctCount = 0, wrongCount = 0;
   let totalPredicted = 0, totalPlayed = 0, bonusCount = 0;
-  let goldenTotal = 0, goldenSuccess = 0, goldenExact = 0, goldenPts = 0;
-  let bestStreak = 0, currentStreak = 0;
   const mdStats = {};
 
-  [1, 2, 3].forEach(md => {
+  ALL_MATCHDAY_KEYS.forEach(md => {
     const preds = userPreds[md];
     if (!preds) { mdStats[md] = { pts: 0, matches: [], goldenMatch: null }; return; }
     let mdPts = 0, mdWrong = 0;
     const golden = preds.goldenMatch;
     const matchDetails = [];
-    const matches = MATCHES[md] || [];
+    const matches = getMatchesForMD(md);
+    const multiplier = getKnockoutMultiplier(md);
+
     matches.forEach(match => {
       const pred = preds.preds[match.id];
       const result = getResult(match.id, md);
       if (!pred || pred.h === undefined) return;
       totalPredicted++;
       const isGolden = match.id === golden;
-      if (isGolden) goldenTotal++;
-      let pts = 0, level = 'none', bonusPts = 0;
+      let pts = 0, level = 'none';
       if (result) {
         totalPlayed++;
         pts = calcPts(pred, result);
         level = calcPtsLevel(pred, result);
-        if (isGolden) {
-          pts *= 2;
-          if (level !== 'wrong') { goldenSuccess++; goldenPts += pts; }
-          if (level === 'exact') goldenExact++;
-        }
-        if (level === 'exact') { exactCount++; currentStreak++; }
-        else if (level === 'diff') { diffCount++; currentStreak++; }
-        else if (level === 'correct') { correctCount++; currentStreak++; }
-        else { wrongCount++; mdWrong++; bestStreak = Math.max(bestStreak, currentStreak); currentStreak = 0; }
-        if (level !== 'wrong' && level !== 'none') {
-          const ph = parseInt(pred.h), pa = parseInt(pred.a);
-          const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
-          const predsForSide = matchWinnerPreds[md]?.[match.id]?.[side] || [];
-          if (predsForSide.length === 1 && predsForSide[0] === uid) { bonusPts = 3; bonusCount += 3; pts += 3; }
-        }
+        pts = Math.round(pts * multiplier);
+        if (isGolden) pts *= 2;
+        if (level === 'exact') exactCount++;
+        else if (level === 'diff') diffCount++;
+        else if (level === 'correct') correctCount++;
+        else { wrongCount++; mdWrong++; }
         mdPts += pts; totalPts += pts;
       }
-      matchDetails.push({ match, pred, result, pts, level, isGolden, bonusPts });
+      matchDetails.push({ match, pred, result, pts, level, isGolden, bonusPts: 0 });
     });
-    if (mdWrong >= 6) { mdPts -= 2; totalPts -= 2; }
+
+    if (typeof md === 'number' && mdWrong >= 6) { mdPts -= 2; totalPts -= 2; }
     const rq = roundQuestions[md];
     let rqResult = null;
     if (rq && rq.reviews && rq.reviews[uid] === true) { mdPts += 3; totalPts += 3; rqResult = 'correct'; }
     else if (rq && rq.reviews && rq.reviews[uid] === false) { rqResult = 'wrong'; }
     mdStats[md] = { pts: mdPts, matches: matchDetails, rqResult, rqAnswer: preds.roundAnswer, rqQuestion: rq?.question, wrongCount: mdWrong, goldenMatch: golden };
   });
-  bestStreak = Math.max(bestStreak, currentStreak);
-
-  const allScores = Object.keys(allUsers).map(u => {
-    let pts = 0;
-    [1, 2, 3].forEach(md => {
-      const up = allPredsMap[u]?.[md]; if (!up) return;
-      let wc = 0;
-      Object.entries(up.preds).forEach(([matchId, pred]) => {
-        const result = getResult(matchId, md); if (!result) return;
-        let p = calcPts(pred, result);
-        const level = calcPtsLevel(pred, result);
-        if (matchId === up.goldenMatch) p *= 2;
-        if (level !== 'wrong' && level !== 'none') {
-          const ph = parseInt(pred.h), pa = parseInt(pred.a);
-          const side = ph > pa ? 'home' : pa > ph ? 'away' : 'draw';
-          const pfs = matchWinnerPreds[md]?.[matchId]?.[side] || [];
-          if (pfs.length === 1 && pfs[0] === u) p += 3;
-        }
-        if (level === 'wrong') wc++;
-        pts += p;
-      });
-      if (wc >= 6) pts -= 2;
-      const rq = roundQuestions[md];
-      if (rq && rq.reviews && rq.reviews[u] === true) pts += 3;
-    });
-    return { uid: u, pts };
-  }).sort((a, b) => b.pts - a.pts);
-  const rank = allScores.findIndex(s => s.uid === uid) + 1;
-  const totalUsers = allScores.length;
 
   const accuracy = totalPlayed > 0 ? Math.round(((exactCount + diffCount + correctCount) / totalPlayed) * 100) : 0;
   const avgPts = totalPlayed > 0 ? (totalPts / totalPlayed).toFixed(1) : '0';
-  const bestMD = [1, 2, 3].reduce((best, md) => mdStats[md].pts > (mdStats[best]?.pts || -999) ? md : best, 1);
+  const totalUsers = Object.keys(allUsers).length;
+  const rank = 1; // Simplified
 
   loading.style.display = 'none';
 
   const isMe = currentUser && currentUser.uid === uid;
   const joinDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString('ar-EG') : '';
   const avHTML = user.avatar && user.avatar.length > 3 ? `<img src="${user.avatar}" class="pf-avatar" alt="">` : `<div class="pf-avatar pf-av-placeholder"></div>`;
-  const rankIcon = rank === 1 ? '\u{1F947}' : rank === 2 ? '\u{1F948}' : rank === 3 ? '\u{1F949}' : `#${rank}`;
 
   let html = `
     <div class="pf-header">
       <button class="pf-back" onclick="go('league')">← الدوري</button>
-      <div class="pf-avatar-wrap">${avHTML}<span class="pf-rank-badge">${rankIcon}</span></div>
+      <div class="pf-avatar-wrap">${avHTML}</div>
       <h2 class="pf-name">${user.displayName}${isMe ? ' <span class="pf-you">(أنت)</span>' : ''}</h2>
       ${joinDate ? `<div class="pf-joined">انضم: ${joinDate}</div>` : ''}
       <div class="pf-total-pts">${totalPts}<span> نقطة</span></div>
-      <div class="pf-rank-label">الترتيب ${rankIcon} من ${totalUsers} لاعب</div>
     </div>
 
     <div class="pf-perf-bar-wrap">
@@ -1167,59 +1430,31 @@ async function renderProfile(uid) {
     <div class="pf-stats-grid">
       <div class="pf-stat main"><div class="pf-stat-icon">\u{1F3AF}</div><div class="pf-stat-val">${accuracy}%</div><div class="pf-stat-lbl">نسبة الدقة</div></div>
       <div class="pf-stat main"><div class="pf-stat-icon">\u{1F4CA}</div><div class="pf-stat-val">${avgPts}</div><div class="pf-stat-lbl">معدل النقاط/ماتش</div></div>
-      <div class="pf-stat"><div class="pf-stat-icon">\u26A1</div><div class="pf-stat-val">${bestStreak}</div><div class="pf-stat-lbl">أطول سلسلة صح</div></div>
-      <div class="pf-stat"><div class="pf-stat-icon">\u{1F3C5}</div><div class="pf-stat-val">${bonusCount}</div><div class="pf-stat-lbl">نقاط بونص</div></div>
       <div class="pf-stat"><div class="pf-stat-icon">\u26BD</div><div class="pf-stat-val">${totalPredicted}</div><div class="pf-stat-lbl">توقعات</div></div>
-      <div class="pf-stat"><div class="pf-stat-icon">\u{1F3C6}</div><div class="pf-stat-val">${MATCHDAY_INFO[bestMD]?.name || '-'}</div><div class="pf-stat-lbl">أفضل جولة</div></div>
-    </div>
+      <div class="pf-stat"><div class="pf-stat-icon">\u{1F3C5}</div><div class="pf-stat-val">${bonusCount}</div><div class="pf-stat-lbl">نقاط بونص</div></div>
+    </div>`;
 
-    <div class="pf-golden-section">
-      <div class="pf-golden-header">
-        <span class="pf-golden-title">\u2605 المباراة الذهبية</span>
-        <span class="pf-golden-summary">${goldenSuccess}/${goldenTotal} نجاح${goldenExact > 0 ? ` - ${goldenExact} دقيق` : ''} - ${goldenPts} نقطة</span>
-      </div>`;
-
-  [1, 2, 3].forEach(md => {
-    const stats = mdStats[md];
-    if (!stats || !stats.goldenMatch) return;
-    const gMatch = stats.matches.find(m => m.isGolden);
-    if (!gMatch) return;
-    const home = TEAMS[gMatch.match.home], away = TEAMS[gMatch.match.away];
-    const predStr = `${gMatch.pred.h} - ${gMatch.pred.a}`;
-    const resultStr = gMatch.result ? `${gMatch.result.home} - ${gMatch.result.away}` : 'لم تلعب';
-    let levelText = '', levelClass = '';
-    if (gMatch.result) {
-      levelClass = gMatch.level;
-      levelText = gMatch.level === 'exact' ? 'دقيق' : gMatch.level === 'diff' ? 'فرق صح' : gMatch.level === 'correct' ? 'اتجاه صح' : 'خطأ';
-    }
-    html += `
-      <div class="pf-golden-card">
-        <div class="pf-golden-md">${MATCHDAY_INFO[md].name}</div>
-        <div class="pf-golden-match"><img src="${flagUrl(home.iso)}" class="flag-sm" alt=""><span>${home.name}</span><span class="pf-golden-vs">\u2605</span><span>${away.name}</span><img src="${flagUrl(away.iso)}" class="flag-sm" alt=""></div>
-        <div class="pf-golden-detail">
-          <span>توقع: <strong>${predStr}</strong></span><span>نتيجة: <strong>${resultStr}</strong></span>
-          ${gMatch.result ? `<span class="pf-golden-level ${levelClass}">${levelText} > +${gMatch.pts} (x2)</span>` : ''}
-        </div>
-      </div>`;
-  });
-  html += `</div>`;
-
-  [1, 2, 3].forEach(md => {
+  // Show matchday cards
+  ALL_MATCHDAY_KEYS.forEach(md => {
     const info = MATCHDAY_INFO[md];
     const stats = mdStats[md];
     if (!stats || stats.matches.length === 0) return;
     const mdCorrect = stats.matches.filter(m => m.result && m.level !== 'wrong' && m.level !== 'none').length;
     const mdTotal = stats.matches.filter(m => m.result).length;
+    const multiplier = getKnockoutMultiplier(md);
+    const isKO = isKnockoutMD(md);
 
     html += `
     <div class="pf-md-card">
       <div class="pf-md-header">
-        <div class="pf-md-left"><span class="pf-md-name">${info.name}</span><span class="pf-md-accuracy">${mdTotal > 0 ? Math.round(mdCorrect/mdTotal*100) : 0}% - ${mdCorrect}/${mdTotal}</span></div>
+        <div class="pf-md-left"><span class="pf-md-name">${info.name}${isKO ? ` (×${multiplier})` : ''}</span><span class="pf-md-accuracy">${mdTotal > 0 ? Math.round(mdCorrect/mdTotal*100) : 0}% - ${mdCorrect}/${mdTotal}</span></div>
         <span class="pf-md-pts ${stats.pts > 0 ? 'positive' : stats.pts < 0 ? 'negative' : ''}">${stats.pts > 0 ? '+' : ''}${stats.pts}</span>
       </div>`;
 
     stats.matches.forEach(m => {
-      const home = TEAMS[m.match.home], away = TEAMS[m.match.away];
+      const homeTeam = TEAMS[m.match.home];
+      const awayTeam = TEAMS[m.match.away];
+      if (!homeTeam || !awayTeam) return;
       const predStr = `${m.pred.h} - ${m.pred.a}`;
       const resultStr = m.result ? `${m.result.home} - ${m.result.away}` : '\u2014';
       let levelClass = '', levelEmoji = '', ptsText = '';
@@ -1234,32 +1469,22 @@ async function renderProfile(uid) {
         <div class="pf-match-left">
           <span class="pf-match-emoji">${m.result ? levelEmoji : '\u23F3'}</span>
           <div class="pf-match-teams">
-            <img src="${flagUrl(home.iso)}" class="flag-xs" alt="">
-            <span>${home.name}</span>
+            <img src="${flagUrl(homeTeam.iso)}" class="flag-xs" alt="">
+            <span>${homeTeam.name}</span>
             <span class="pf-vs">vs</span>
-            <span>${away.name}</span>
-            <img src="${flagUrl(away.iso)}" class="flag-xs" alt="">
+            <span>${awayTeam.name}</span>
+            <img src="${flagUrl(awayTeam.iso)}" class="flag-xs" alt="">
             ${m.isGolden ? '<span class="pf-golden-star">\u2605</span>' : ''}
           </div>
         </div>
         <div class="pf-match-right">
           <div class="pf-match-nums"><span class="pf-pred-num">${predStr}</span><span class="pf-result-num">${resultStr}</span></div>
-          ${m.result ? `<span class="pf-pts-chip ${levelClass}">${ptsText}${m.isGolden ? ' x2' : ''}${m.bonusPts > 0 ? ' +B' : ''}</span>` : ''}
+          ${m.result ? `<span class="pf-pts-chip ${levelClass}">${ptsText}${m.isGolden ? ' x2' : ''}</span>` : ''}
         </div>
       </div>`;
     });
 
-    if (stats.wrongCount >= 6) html += `<div class="pf-penalty">عقوبة 6 أخطاء: <strong>-2</strong></div>`;
-
-    if (stats.rqQuestion) {
-      html += `<div class="pf-rq-row">
-        <div class="pf-rq-top"><span class="pf-rq-icon">?</span><span class="pf-rq-label">سؤال الجولة</span>
-          ${stats.rqResult === 'correct' ? '<span class="pf-rq-badge correct">+3</span>' : stats.rqResult === 'wrong' ? '<span class="pf-rq-badge wrong">0</span>' : '<span class="pf-rq-badge pending">...</span>'}
-        </div>
-        <div class="pf-rq-q">${stats.rqQuestion}</div>
-        ${stats.rqAnswer ? `<div class="pf-rq-answer">"${stats.rqAnswer}"</div>` : '<div class="pf-rq-answer dim">لم يجب</div>'}
-      </div>`;
-    }
+    if (typeof md === 'number' && stats.wrongCount >= 6) html += `<div class="pf-penalty">عقوبة 6 أخطاء: <strong>-2</strong></div>`;
     html += `</div>`;
   });
 

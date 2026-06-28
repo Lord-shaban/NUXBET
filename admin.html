@@ -170,11 +170,7 @@
         قرعة الكأس
       </div>
       <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px">اضغط لإعادة سحب قرعة الجولة الحالية. ستُحذف القرعة القديمة وتُنشأ قرعة جديدة عشوائية.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="save-btn cup-redraw-btn" data-md="1" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 1</button>
-        <button class="save-btn cup-redraw-btn" data-md="2" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 2</button>
-        <button class="save-btn cup-redraw-btn" data-md="3" style="flex:1;min-width:100px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.8rem">🔄 قرعة الجولة 3</button>
-      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="cup-draw-buttons"></div>
       <div id="cup-draw-status" style="margin-top:10px;font-size:0.78rem;color:var(--text-dim);text-align:center"></div>
     </div>
 
@@ -197,11 +193,15 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    let activeMD = 1;
+    let activeMD = 1; // Can be number (group) or string (knockout key)
     const ADMIN_PASS = 'lord';
 
     // Store review decisions: { odUserId: true/false }
     let reviewDecisions = {};
+
+    // Helper: check if current MD is knockout
+    function isKO(md) { return typeof md === 'string'; }
+    function getDocId(md) { return isKO(md) ? `ko_${md}` : `md${md}`; }
 
     function adminToast(msg, type='success') {
       const t = document.getElementById('admin-toast');
@@ -216,7 +216,7 @@
       if (document.getElementById('adm-pass').value === ADMIN_PASS) {
         document.getElementById('admin-login-overlay').style.display = 'none';
         document.getElementById('admin-app').style.display = 'block';
-        renderTabs(); renderMatches(activeMD); loadUsersForDropdown();
+        renderTabs(); renderMatches(activeMD); loadUsersForDropdown(); renderCupDrawButtons();
       } else {
         document.getElementById('adm-error').textContent = 'كلمة المرور غلط';
       }
@@ -225,14 +225,23 @@
       if (e.key === 'Enter') document.getElementById('adm-btn').click();
     });
 
-    // TABS
+    // TABS — Group (1,2,3) + Knockout (R32, R16, QF, SF, 3RD, FINAL)
     function renderTabs() {
       const el = document.getElementById('admin-tabs');
-      el.innerHTML = Object.keys(MATCHDAY_INFO).map(md =>
-        `<button class="md-tab ${+md === activeMD ? 'active' : ''}" data-md="${md}">${MATCHDAY_INFO[md].name}</button>`
-      ).join('');
+      const allKeys = ALL_MATCHDAY_KEYS; // [1, 2, 3, 'R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
+      el.innerHTML = allKeys.map(md => {
+        const info = MATCHDAY_INFO[md];
+        const isActive = md === activeMD;
+        const icon = info.icon ? info.icon + ' ' : '';
+        const koStyle = isKO(md) ? 'style="border-bottom: 2px solid var(--pl-magenta)"' : '';
+        return `<button class="md-tab ${isActive ? 'active' : ''}" data-md="${md}" ${koStyle}>${icon}${info.name}</button>`;
+      }).join('');
       el.querySelectorAll('.md-tab').forEach(b => {
-        b.addEventListener('click', () => { activeMD = +b.dataset.md; renderTabs(); renderMatches(activeMD); });
+        b.addEventListener('click', () => {
+          const mdVal = b.dataset.md;
+          activeMD = isNaN(mdVal) ? mdVal : +mdVal;
+          renderTabs(); renderMatches(activeMD);
+        });
       });
     }
 
@@ -240,39 +249,69 @@
     async function renderMatches(md) {
       reviewDecisions = {};
       const el = document.getElementById('admin-matches');
-      const matches = MATCHES[md] || [];
+      const matches = isKO(md) ? (KNOCKOUT_MATCHES[md] || []) : (MATCHES[md] || []);
       let saved = {};
       try {
-        const snap = await getDoc(doc(db, 'results', `md${md}`));
+        const snap = await getDoc(doc(db, 'results', getDocId(md)));
         if (snap.exists()) saved = snap.data().matches || {};
       } catch(e) { console.error(e); }
 
-      el.innerHTML = matches.map(m => {
-        const home = TEAMS[m.home], away = TEAMS[m.away];
-        const r = saved[m.id] || m.result || {};
-        const hasResult = r.home !== undefined && r.away !== undefined;
-        return `<div class="match-row ${hasResult ? 'has-result' : ''}">
-          <span class="group-tag">${m.group}</span>
-          <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
-          <span class="team-names">${home.name} vs ${away.name}</span>
-          <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
-          <span class="date-tag">${formatMatchDate(m.date)} - ${m.time}</span>
-          <div class="score-box">
-            <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-">
-            <span class="dash">-</span>
-            <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-">
-          </div>
-          <span class="result-status">${hasResult ? '✅' : '⏳'}</span>
-        </div>`;
-      }).join('');
+      if (isKO(md)) {
+        // Knockout matches
+        const roundInfo = KNOCKOUT_ROUNDS[md];
+        el.innerHTML = `<div style="font-size:0.75rem;color:var(--pl-magenta);font-weight:700;margin-bottom:10px">${roundInfo.icon} ${roundInfo.name} — ${matches.length} مباراة (×${KNOCKOUT_MULTIPLIERS[md]} نقاط)</div>` +
+          matches.map(m => {
+            const homeTeam = m.home && TEAMS[m.home] ? TEAMS[m.home] : null;
+            const awayTeam = m.away && TEAMS[m.away] ? TEAMS[m.away] : null;
+            const r = saved[m.id] || m.result || {};
+            const hasResult = r.home !== undefined && r.away !== undefined;
+            const isTBD = !homeTeam || !awayTeam;
+            const homeName = homeTeam ? homeTeam.name : 'يُحدد لاحقاً';
+            const awayName = awayTeam ? awayTeam.name : 'يُحدد لاحقاً';
+            const homeFlag = homeTeam ? `<img src="${flagUrl(homeTeam.iso)}" class="flag-sm" alt="">` : '<span style="font-size:1.2rem">❓</span>';
+            const awayFlag = awayTeam ? `<img src="${flagUrl(awayTeam.iso)}" class="flag-sm" alt="">` : '<span style="font-size:1.2rem">❓</span>';
+            return `<div class="match-row ${hasResult ? 'has-result' : ''}" ${isTBD ? 'style="opacity:0.5"' : ''}>
+              <span class="group-tag" style="background:rgba(150,60,255,0.08);color:var(--pl-violet)">${roundInfo.short}</span>
+              ${homeFlag}
+              <span class="team-names">${homeName} vs ${awayName}</span>
+              ${awayFlag}
+              <span class="date-tag">${formatMatchDate(m.date)} - ${m.time}</span>
+              <div class="score-box">
+                <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
+                <span class="dash">-</span>
+                <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
+              </div>
+              <span class="result-status">${hasResult ? '✅' : isTBD ? '🔒' : '⏳'}</span>
+            </div>`;
+          }).join('');
+      } else {
+        // Group stage matches
+        el.innerHTML = matches.map(m => {
+          const home = TEAMS[m.home], away = TEAMS[m.away];
+          const r = saved[m.id] || m.result || {};
+          const hasResult = r.home !== undefined && r.away !== undefined;
+          return `<div class="match-row ${hasResult ? 'has-result' : ''}">
+            <span class="group-tag">${m.group}</span>
+            <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
+            <span class="team-names">${home.name} vs ${away.name}</span>
+            <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
+            <span class="date-tag">${formatMatchDate(m.date)} - ${m.time}</span>
+            <div class="score-box">
+              <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-">
+              <span class="dash">-</span>
+              <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-">
+            </div>
+            <span class="result-status">${hasResult ? '✅' : '⏳'}</span>
+          </div>`;
+        }).join('');
+      }
 
-      // Load round question
+      // Load round question (works for both group + knockout)
       try {
-        const rqSnap = await getDoc(doc(db, 'roundQuestions', `md${md}`));
+        const rqSnap = await getDoc(doc(db, 'roundQuestions', getDocId(md)));
         if (rqSnap.exists()) {
           const rqData = rqSnap.data();
           document.getElementById('rq-question-input').value = rqData.question || '';
-          // Load saved review decisions
           if (rqData.reviews) reviewDecisions = { ...rqData.reviews };
         } else {
           document.getElementById('rq-question-input').value = '';
@@ -349,14 +388,14 @@
       });
     }
 
-    // SAVE ALL
+    // SAVE ALL — handles both group and knockout
     document.getElementById('admin-save').addEventListener('click', async () => {
-      const matches = MATCHES[activeMD] || [];
+      const matches = isKO(activeMD) ? (KNOCKOUT_MATCHES[activeMD] || []) : (MATCHES[activeMD] || []);
       const results = {};
       matches.forEach(m => {
         const hEl = document.getElementById('rh-' + m.id);
         const aEl = document.getElementById('ra-' + m.id);
-        if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
+        if (hEl && aEl && hEl.value !== '' && aEl.value !== '' && !hEl.disabled) {
           results[m.id] = { home: +hEl.value, away: +aEl.value };
         }
       });
@@ -368,17 +407,18 @@
 
       try {
         const savedItems = [];
+        const docId = getDocId(activeMD);
 
         // Save results
         if (Object.keys(results).length > 0) {
-          await setDoc(doc(db, 'results', `md${activeMD}`), { matches: results, updatedAt: serverTimestamp() });
+          await setDoc(doc(db, 'results', docId), { matches: results, updatedAt: serverTimestamp() });
           savedItems.push(`${Object.keys(results).length} نتيجة`);
         }
 
         // Save round question + manual reviews
         if (rqQuestion) {
           const rqDoc = { question: rqQuestion, reviews: reviewDecisions, updatedAt: serverTimestamp() };
-          await setDoc(doc(db, 'roundQuestions', `md${activeMD}`), rqDoc);
+          await setDoc(doc(db, 'roundQuestions', docId), rqDoc);
           savedItems.push('سؤال الجولة');
         }
 
@@ -416,7 +456,8 @@
       btn.textContent = 'جاري التحميل...'; btn.disabled = true;
 
       try {
-        const docRef = doc(db, 'predictions', `${uid}_md${activeMD}`);
+        const predDocId = isKO(activeMD) ? `${uid}_ko_${activeMD}` : `${uid}_md${activeMD}`;
+        const docRef = doc(db, 'predictions', predDocId);
         const snap = await getDoc(docRef);
         
         if (snap.exists()) {
@@ -436,22 +477,25 @@
       const container = document.getElementById('ap-player-content');
       if (!currentPlayerPreds) return;
 
-      const matches = MATCHES[activeMD] || [];
+      const matches = isKO(activeMD) ? (KNOCKOUT_MATCHES[activeMD] || []) : (MATCHES[activeMD] || []);
       const userSelect = document.getElementById('ap-user');
       const playerName = userSelect.options[userSelect.selectedIndex].text;
+      const mdInfo = MATCHDAY_INFO[activeMD];
 
       let html = `
         <div class="ap-player-info">
-          <span>👤</span> تعديل توقعات: <strong>${playerName}</strong> - الجولة ${activeMD}
+          <span>👤</span> تعديل توقعات: <strong>${playerName}</strong> - ${mdInfo.name}
         </div>
         <div class="ap-matches-grid">
       `;
 
       matches.forEach(m => {
-        const home = TEAMS[m.home], away = TEAMS[m.away];
+        const homeTeam = m.home && TEAMS[m.home] ? TEAMS[m.home] : null;
+        const awayTeam = m.away && TEAMS[m.away] ? TEAMS[m.away] : null;
         const p = currentPlayerPreds.preds[m.id] || {};
         const isGolden = currentPlayerPreds.goldenMatch === m.id;
         const hasPred = p.h !== undefined && p.a !== undefined;
+        const isTBD = !homeTeam || !awayTeam;
         
         let statusHtml = '';
         const st = getMatchStatus(m);
@@ -459,21 +503,26 @@
         else if (st === 'live') statusHtml = `<span class="ap-match-status live">مباشر</span>`;
         else statusHtml = `<span class="ap-match-status upcoming">${m.time}</span>`;
 
+        const homeName = homeTeam ? homeTeam.name : 'يُحدد لاحقاً';
+        const awayName = awayTeam ? awayTeam.name : 'يُحدد لاحقاً';
+        const homeFlag = homeTeam ? `<img src="${flagUrl(homeTeam.iso)}" class="flag-sm" alt="">` : '';
+        const awayFlag = awayTeam ? `<img src="${flagUrl(awayTeam.iso)}" class="flag-sm" alt="">` : '';
+
         html += `
-          <div class="ap-match-row ${hasPred ? 'has-pred' : ''} ${isGolden ? 'is-golden-row' : ''}">
-            <button class="ap-golden-star ${isGolden ? 'active' : ''}" data-mid="${m.id}" title="تعيين كمباراة ذهبية">★</button>
+          <div class="ap-match-row ${hasPred ? 'has-pred' : ''} ${isGolden ? 'is-golden-row' : ''}" ${isTBD ? 'style="opacity:0.4"' : ''}>
+            <button class="ap-golden-star ${isGolden ? 'active' : ''}" data-mid="${m.id}" title="تعيين كمباراة ذهبية" ${isTBD ? 'disabled' : ''}>★</button>
             <div class="ap-match-info">
-              <span class="team-txt">${home.name}</span>
-              <img src="${flagUrl(home.iso)}" class="flag-sm" alt="">
+              <span class="team-txt">${homeName}</span>
+              ${homeFlag}
               <span class="vs-txt">VS</span>
-              <img src="${flagUrl(away.iso)}" class="flag-sm" alt="">
-              <span class="team-txt">${away.name}</span>
+              ${awayFlag}
+              <span class="team-txt">${awayName}</span>
             </div>
             ${statusHtml}
             <div class="ap-score-inputs">
-              <input type="number" class="ap-h-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}">
+              <input type="number" class="ap-h-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}" ${isTBD ? 'disabled' : ''}>
               <span class="dash">-</span>
-              <input type="number" class="ap-a-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}">
+              <input type="number" class="ap-a-input" data-mid="${m.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}" ${isTBD ? 'disabled' : ''}>
             </div>
           </div>
         `;
@@ -489,9 +538,10 @@
       // Attach Golden Star logic
       container.querySelectorAll('.ap-golden-star').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (btn.disabled) return;
           const mid = btn.dataset.mid;
           currentPlayerPreds.goldenMatch = mid;
-          renderPlayerPredictions(); // Re-render to update UI
+          renderPlayerPredictions();
         });
       });
 
@@ -500,9 +550,9 @@
         const saveBtn = document.getElementById('ap-save-preds-btn');
         saveBtn.textContent = 'جاري الحفظ...'; saveBtn.disabled = true;
 
-        // Gather predictions from inputs
         const newPreds = {};
         container.querySelectorAll('.ap-h-input').forEach(hInput => {
+          if (hInput.disabled) return;
           const mid = hInput.dataset.mid;
           const aInput = container.querySelector(`.ap-a-input[data-mid="${mid}"]`);
           if (hInput.value !== '' && aInput.value !== '') {
@@ -514,9 +564,10 @@
         currentPlayerPreds.updatedAt = serverTimestamp();
 
         try {
-          await setDoc(doc(db, 'predictions', `${currentPlayerUid}_md${activeMD}`), currentPlayerPreds);
+          const predDocId = isKO(activeMD) ? `${currentPlayerUid}_ko_${activeMD}` : `${currentPlayerUid}_md${activeMD}`;
+          await setDoc(doc(db, 'predictions', predDocId), currentPlayerPreds);
           adminToast('تم حفظ توقعات اللاعب بنجاح!');
-          renderPlayerPredictions(); // Refresh styling
+          renderPlayerPredictions();
         } catch(e) {
           console.error(e); adminToast('حدث خطأ أثناء حفظ التوقعات', 'error');
         }
@@ -526,63 +577,69 @@
     }
 
     // CUP RE-DRAW LOGIC
-    document.querySelectorAll('.cup-redraw-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const md = +btn.dataset.md;
-        if (!confirm(`هل أنت متأكد من إعادة قرعة الجولة ${md}؟ ستُحذف القرعة الحالية.`)) return;
+    function renderCupDrawButtons() {
+      const container = document.getElementById('cup-draw-buttons');
+      const allKeys = ALL_MATCHDAY_KEYS;
+      container.innerHTML = allKeys.map(md => {
+        const info = MATCHDAY_INFO[md];
+        const icon = info.icon || '🔄';
+        return `<button class="save-btn cup-redraw-btn" data-md="${md}" style="flex:1;min-width:80px;padding:10px;margin:0;background:linear-gradient(135deg,rgba(232,185,35,0.8),rgba(232,185,35,1));font-size:0.72rem">${icon} ${info.name}</button>`;
+      }).join('');
 
-        btn.disabled = true;
-        btn.textContent = 'جاري السحب...';
-        const statusEl = document.getElementById('cup-draw-status');
+      container.querySelectorAll('.cup-redraw-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const mdVal = btn.dataset.md;
+          const md = isNaN(mdVal) ? mdVal : +mdVal;
+          const mdInfo = MATCHDAY_INFO[md];
+          if (!confirm(`هل أنت متأكد من إعادة قرعة ${mdInfo.name}؟`)) return;
 
-        try {
-          // Get all users
-          const usersSnap = await getDocs(collection(db, 'users'));
-          const uids = [];
-          usersSnap.forEach(d => uids.push(d.id));
+          btn.disabled = true;
+          btn.textContent = 'جاري السحب...';
+          const statusEl = document.getElementById('cup-draw-status');
 
-          if (uids.length < 2) {
-            adminToast('يجب أن يكون هناك لاعبين على الأقل', 'warn');
-            btn.disabled = false; btn.textContent = `🔄 قرعة الجولة ${md}`;
-            return;
+          try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            const uids = [];
+            usersSnap.forEach(d => uids.push(d.id));
+
+            if (uids.length < 2) {
+              adminToast('يجب أن يكون هناك لاعبين على الأقل', 'warn');
+              btn.disabled = false; btn.textContent = `${mdInfo.icon || '🔄'} ${mdInfo.name}`;
+              return;
+            }
+
+            const shuffled = [...uids].sort(() => Math.random() - 0.5);
+            let byePlayer = null;
+            if (shuffled.length % 2 !== 0) byePlayer = shuffled.pop();
+            const matchups = [];
+            for (let i = 0; i < shuffled.length; i += 2) {
+              matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+            }
+
+            const docId = isKO(md) ? `round_${md}` : `round${md}`;
+            const draw = { matchday: md, matchups, byePlayer: byePlayer || null, createdAt: new Date().toISOString() };
+            await setDoc(doc(db, 'cupDraws', docId), draw);
+
+            const allUsersMap = {};
+            usersSnap.forEach(d => { allUsersMap[d.id] = d.data(); });
+            let statusText = `✅ تم سحب قرعة ${mdInfo.name}: `;
+            matchups.forEach(m => {
+              const n1 = allUsersMap[m.p1]?.displayName || 'لاعب';
+              const n2 = allUsersMap[m.p2]?.displayName || 'لاعب';
+              statusText += `${n1} ⚔ ${n2} | `;
+            });
+            if (byePlayer) statusText += `${allUsersMap[byePlayer]?.displayName || 'لاعب'} 🎫 راحة`;
+            statusEl.textContent = statusText;
+            adminToast(`تم سحب قرعة ${mdInfo.name} بنجاح!`);
+          } catch(e) {
+            console.error(e);
+            adminToast('حدث خطأ أثناء سحب القرعة', 'error');
           }
 
-          // Shuffle and create matchups
-          const shuffled = [...uids].sort(() => Math.random() - 0.5);
-          let byePlayer = null;
-          if (shuffled.length % 2 !== 0) {
-            byePlayer = shuffled.pop();
-          }
-          const matchups = [];
-          for (let i = 0; i < shuffled.length; i += 2) {
-            matchups.push({ p1: shuffled[i], p2: shuffled[i + 1] });
-          }
-
-          const draw = { matchday: md, matchups, byePlayer: byePlayer || null, createdAt: new Date().toISOString() };
-          await setDoc(doc(db, 'cupDraws', `round${md}`), draw);
-
-          // Build status text
-          const allUsersMap = {};
-          usersSnap.forEach(d => { allUsersMap[d.id] = d.data(); });
-          let statusText = `✅ تم سحب قرعة الجولة ${md}: `;
-          matchups.forEach(m => {
-            const n1 = allUsersMap[m.p1]?.displayName || 'لاعب';
-            const n2 = allUsersMap[m.p2]?.displayName || 'لاعب';
-            statusText += `${n1} ⚔ ${n2} | `;
-          });
-          if (byePlayer) {
-            statusText += `${allUsersMap[byePlayer]?.displayName || 'لاعب'} 🎫 راحة`;
-          }
-          statusEl.textContent = statusText;
-          adminToast(`تم سحب قرعة الجولة ${md} بنجاح!`);
-        } catch(e) {
-          console.error(e);
-          adminToast('حدث خطأ أثناء سحب القرعة', 'error');
-        }
-
-        btn.disabled = false; btn.textContent = `🔄 قرعة الجولة ${md}`;
+          btn.disabled = false; btn.textContent = `${mdInfo.icon || '🔄'} ${mdInfo.name}`;
+        });
       });
-    });
+    }
 
   </script>
 </body>

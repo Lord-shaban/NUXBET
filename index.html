@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="NUXBET - توقعات كأس العالم 2026. سجّل وتوقع نتائج المباريات وتنافس مع أصدقائك">
+  <meta name="description" content="NUXBET - توقعات كأس العالم 2026. سجّل وتوقع نتائج المباريات من المجموعات وحتى النهائي وتنافس مع أصدقائك">
   <title>NUXBET | توقعات كأس العالم 2026</title>
   <link rel="stylesheet" href="css/style.css?v=15">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23E90052%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 font-size=%2250%22 font-weight=%22900%22 fill=%22white%22>N</text></svg>">
@@ -72,6 +72,7 @@
       <nav class="nav" id="main-nav">
         <button class="nav-btn active" data-page="home">الرئيسية</button>
         <button class="nav-btn" data-page="predictions">التوقعات</button>
+        <button class="nav-btn" data-page="knockout">الإقصائيات</button>
         <button class="nav-btn" data-page="league">الدوري</button>
         <button class="nav-btn" data-page="cup">الكأس</button>
       </nav>
@@ -126,8 +127,8 @@
         </div>
         <div class="stat-chip ani">
           <div class="stat-icon matches-icon"></div>
-          <div class="val">72</div>
-          <div class="lbl">مباراة مجموعات</div>
+          <div class="val">104</div>
+          <div class="lbl">مباراة كلية</div>
         </div>
         <div class="stat-chip ani">
           <div class="stat-icon golden-icon"></div>
@@ -242,6 +243,28 @@
       </div>
       <div class="loading-overlay" id="league-loading" style="display:none">
         <div class="spinner"></div><span>جاري حساب الترتيب...</span>
+      </div>
+    </section>
+
+    <!-- KNOCKOUT -->
+    <section class="page" id="page-knockout">
+      <div class="sec-title"><span class="bar"></span> الأدوار الإقصائية</div>
+      <div class="ko-info-banner">
+        <span class="ko-info-icon">⚔️</span>
+        <div class="ko-info-text">
+          <strong>مرحلة خروج المغلوب</strong>
+          <p>من دور الـ 32 وحتى النهائي — النقاط تتضاعف كل دور!</p>
+        </div>
+      </div>
+      <div class="ko-round-tabs" id="ko-round-tabs"></div>
+      <div class="ko-multiplier-badge" id="ko-multiplier-badge"></div>
+      <div class="matches-grid" id="ko-matches-grid"></div>
+      <div class="ko-bracket-section" id="ko-bracket-section">
+        <div class="sec-title" style="margin-top:32px"><span class="bar"></span> شجرة البطولة</div>
+        <div class="ko-bracket" id="ko-bracket"></div>
+      </div>
+      <div class="loading-overlay" id="ko-loading" style="display:none">
+        <div class="spinner"></div><span>جاري التحميل...</span>
       </div>
     </section>
 

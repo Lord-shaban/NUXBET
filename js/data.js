@@ -1,6 +1,6 @@
 // ============================================================
 // NUXBET - FIFA World Cup 2026 Data
-// All 48 teams, 12 groups, and group stage fixtures
+// All 48 teams, 12 groups, group stage + knockout fixtures
 // ============================================================
 
 // Flag URL helper — circle flags CDN
@@ -85,10 +85,10 @@ const GROUPS = {
   L: ['ENG', 'CRO', 'GHA', 'PAN'],
 };
 
-// Matchday 1: June 11-18 (Mecca time UTC+3)
-// Matchday 2: June 18-24
-// Matchday 3: June 24-28
-// All times are in Mecca time (UTC+3) — verified from beIN Sports / yallakora / alarabiya
+// ============================================================
+// GROUP STAGE MATCHES (Matchdays 1-3)
+// All times are in Mecca time (UTC+3)
+// ============================================================
 const MATCHES = {
   1: [
     { id: 'm1_01', home: 'MEX', away: 'RSA', group: 'A', date: '2026-06-11', time: '22:00', result: { home: 2, away: 0 } },
@@ -117,62 +117,50 @@ const MATCHES = {
     { id: 'm1_24', home: 'GHA', away: 'PAN', group: 'L', date: '2026-06-18', time: '02:00', result: null },
   ],
   2: [
-    // الخميس 2026/06/18 - الجولة 2
     { id: 'm2_01', home: 'CZE', away: 'RSA', group: 'A', date: '2026-06-18', time: '19:00', result: null },
     { id: 'm2_02', home: 'SUI', away: 'BIH', group: 'B', date: '2026-06-18', time: '22:00', result: null },
-    // الجمعة 2026/06/19
     { id: 'm2_03', home: 'CAN', away: 'QAT', group: 'B', date: '2026-06-19', time: '01:00', result: null },
     { id: 'm2_04', home: 'MEX', away: 'KOR', group: 'A', date: '2026-06-19', time: '04:00', result: null },
     { id: 'm2_05', home: 'USA', away: 'AUS', group: 'D', date: '2026-06-19', time: '22:00', result: null },
-    // السبت 2026/06/20
     { id: 'm2_06', home: 'SCO', away: 'MAR', group: 'C', date: '2026-06-20', time: '01:00', result: null },
     { id: 'm2_07', home: 'BRA', away: 'HAI', group: 'C', date: '2026-06-20', time: '03:30', result: null },
     { id: 'm2_08', home: 'TUR', away: 'PAR', group: 'D', date: '2026-06-20', time: '06:00', result: null },
     { id: 'm2_09', home: 'NED', away: 'SWE', group: 'F', date: '2026-06-20', time: '20:00', result: null },
     { id: 'm2_10', home: 'GER', away: 'CIV', group: 'E', date: '2026-06-20', time: '23:00', result: null },
-    // الأحد 2026/06/21
     { id: 'm2_11', home: 'ECU', away: 'CUW', group: 'E', date: '2026-06-21', time: '03:00', result: null },
     { id: 'm2_12', home: 'TUN', away: 'JPN', group: 'F', date: '2026-06-21', time: '07:00', result: null },
     { id: 'm2_13', home: 'ESP', away: 'KSA', group: 'H', date: '2026-06-21', time: '19:00', result: null },
     { id: 'm2_14', home: 'BEL', away: 'IRN', group: 'G', date: '2026-06-21', time: '22:00', result: null },
-    // الإثنين 2026/06/22
     { id: 'm2_15', home: 'URU', away: 'CPV', group: 'H', date: '2026-06-22', time: '01:00', result: null },
     { id: 'm2_16', home: 'NZL', away: 'EGY', group: 'G', date: '2026-06-22', time: '04:00', result: null },
     { id: 'm2_17', home: 'ARG', away: 'AUT', group: 'J', date: '2026-06-22', time: '20:00', result: null },
-    // الثلاثاء 2026/06/23
     { id: 'm2_18', home: 'FRA', away: 'IRQ', group: 'I', date: '2026-06-23', time: '00:00', result: null },
     { id: 'm2_19', home: 'NOR', away: 'SEN', group: 'I', date: '2026-06-23', time: '03:00', result: null },
     { id: 'm2_20', home: 'JOR', away: 'ALG', group: 'J', date: '2026-06-23', time: '06:00', result: null },
     { id: 'm2_21', home: 'POR', away: 'UZB', group: 'K', date: '2026-06-23', time: '20:00', result: null },
     { id: 'm2_22', home: 'ENG', away: 'GHA', group: 'L', date: '2026-06-23', time: '23:00', result: null },
-    // الأربعاء 2026/06/24
     { id: 'm2_23', home: 'PAN', away: 'CRO', group: 'L', date: '2026-06-24', time: '02:00', result: null },
     { id: 'm2_24', home: 'COL', away: 'COD', group: 'K', date: '2026-06-24', time: '05:00', result: null },
   ],
   3: [
-    // الأربعاء 2026/06/24 (المجموعة B)
     { id: 'm3_01', home: 'SUI', away: 'CAN', group: 'B', date: '2026-06-24', time: '22:00', result: null },
     { id: 'm3_02', home: 'BIH', away: 'QAT', group: 'B', date: '2026-06-24', time: '22:00', result: null },
-    // الخميس 2026/06/25
     { id: 'm3_03', home: 'SCO', away: 'BRA', group: 'C', date: '2026-06-25', time: '01:00', result: null },
     { id: 'm3_04', home: 'MAR', away: 'HAI', group: 'C', date: '2026-06-25', time: '01:00', result: null },
     { id: 'm3_05', home: 'CZE', away: 'MEX', group: 'A', date: '2026-06-25', time: '04:00', result: null },
     { id: 'm3_06', home: 'RSA', away: 'KOR', group: 'A', date: '2026-06-25', time: '04:00', result: null },
     { id: 'm3_07', home: 'ECU', away: 'GER', group: 'E', date: '2026-06-25', time: '23:00', result: null },
     { id: 'm3_08', home: 'CUW', away: 'CIV', group: 'E', date: '2026-06-25', time: '23:00', result: null },
-    // الجمعة 2026/06/26
     { id: 'm3_09', home: 'TUN', away: 'NED', group: 'F', date: '2026-06-26', time: '02:00', result: null },
     { id: 'm3_10', home: 'JPN', away: 'SWE', group: 'F', date: '2026-06-26', time: '02:00', result: null },
     { id: 'm3_11', home: 'TUR', away: 'USA', group: 'D', date: '2026-06-26', time: '05:00', result: null },
     { id: 'm3_12', home: 'PAR', away: 'AUS', group: 'D', date: '2026-06-26', time: '05:00', result: null },
     { id: 'm3_13', home: 'NOR', away: 'FRA', group: 'I', date: '2026-06-26', time: '22:00', result: null },
     { id: 'm3_14', home: 'SEN', away: 'IRQ', group: 'I', date: '2026-06-26', time: '22:00', result: null },
-    // السبت 2026/06/27
     { id: 'm3_15', home: 'URU', away: 'ESP', group: 'H', date: '2026-06-27', time: '03:00', result: null },
     { id: 'm3_16', home: 'CPV', away: 'KSA', group: 'H', date: '2026-06-27', time: '03:00', result: null },
     { id: 'm3_17', home: 'NZL', away: 'BEL', group: 'G', date: '2026-06-27', time: '06:00', result: null },
     { id: 'm3_18', home: 'EGY', away: 'IRN', group: 'G', date: '2026-06-27', time: '06:00', result: null },
-    // الأحد 2026/06/28
     { id: 'm3_19', home: 'PAN', away: 'ENG', group: 'L', date: '2026-06-28', time: '00:00', result: null },
     { id: 'm3_20', home: 'CRO', away: 'GHA', group: 'L', date: '2026-06-28', time: '00:00', result: null },
     { id: 'm3_21', home: 'COL', away: 'POR', group: 'K', date: '2026-06-28', time: '02:30', result: null },
@@ -182,14 +170,141 @@ const MATCHES = {
   ]
 };
 
-const MATCHDAY_INFO = {
-  1: { name: 'الجولة الأولى', nameEn: 'Matchday 1', dateRange: '11 - 18 يونيو', deadline: '2026-06-11T17:00:00' },
-  2: { name: 'الجولة الثانية', nameEn: 'Matchday 2', dateRange: '18 - 24 يونيو', deadline: '2026-06-18T16:00:00' },
-  3: { name: 'الجولة الثالثة', nameEn: 'Matchday 3', dateRange: '24 - 28 يونيو', deadline: '2026-06-24T19:00:00' },
+// ============================================================
+// KNOCKOUT STAGE DATA
+// ============================================================
+
+// Knockout round definitions
+const KNOCKOUT_ROUNDS = {
+  R32: { key: 'R32', name: 'دور الـ 32', nameEn: 'Round of 32', short: 'R32', icon: '⚔️', matchCount: 16 },
+  R16: { key: 'R16', name: 'دور الـ 16', nameEn: 'Round of 16', short: 'R16', icon: '🔥', matchCount: 8 },
+  QF:  { key: 'QF',  name: 'ربع النهائي', nameEn: 'Quarter-finals', short: 'QF', icon: '🏅', matchCount: 4 },
+  SF:  { key: 'SF',  name: 'نصف النهائي', nameEn: 'Semi-finals', short: 'SF', icon: '⭐', matchCount: 2 },
+  '3RD': { key: '3RD', name: 'المركز الثالث', nameEn: 'Third Place', short: '3rd', icon: '🥉', matchCount: 1 },
+  FINAL: { key: 'FINAL', name: 'النهائي', nameEn: 'Final', short: 'F', icon: '🏆', matchCount: 1 },
 };
 
-// Avatar options — local player images (add your own to img/avatars/)
-// Name files: 1.jpeg, 2.jpeg, 3.jpeg, etc.
+// Points multiplier per knockout round (scales up importance)
+const KNOCKOUT_MULTIPLIERS = {
+  R32: 1,
+  R16: 1.5,
+  QF: 2,
+  SF: 3,
+  '3RD': 2,
+  FINAL: 4
+};
+
+// Knockout matches — organized by round key
+// home/away can be team codes OR placeholder strings like "1A" (winner group A), "2B" (runner-up group B), "3ABCD" (best third from groups A/B/C/D)
+// The admin can update these from the panel as teams are confirmed
+const KNOCKOUT_MATCHES = {
+  R32: [
+    // June 28
+    { id: 'r32_01', home: 'RSA', away: 'CAN', round: 'R32', date: '2026-06-28', time: '22:00', venue: 'SoFi Stadium, Los Angeles', result: null },
+    // June 29
+    { id: 'r32_02', home: 'BRA', away: 'JPN', round: 'R32', date: '2026-06-29', time: '20:00', venue: 'NRG Stadium, Houston', result: null },
+    { id: 'r32_03', home: 'GER', away: 'PAR', round: 'R32', date: '2026-06-29', time: '23:30', venue: 'Gillette Stadium, Boston', result: null },
+    // June 30
+    { id: 'r32_04', home: 'NED', away: 'MAR', round: 'R32', date: '2026-06-30', time: '04:00', venue: 'Estadio BBVA, Monterrey', result: null },
+    { id: 'r32_05', home: 'CIV', away: 'NOR', round: 'R32', date: '2026-06-30', time: '20:00', venue: 'AT&T Stadium, Dallas', result: null },
+    { id: 'r32_06', home: 'FRA', away: 'SWE', round: 'R32', date: '2026-07-01', time: '00:00', venue: 'Lincoln Financial Field, Philadelphia', result: null },
+    // July 1
+    { id: 'r32_07', home: 'MEX', away: 'ECU', round: 'R32', date: '2026-07-01', time: '03:00', venue: 'Estadio Azteca, Mexico City', result: null },
+    { id: 'r32_08', home: 'ENG', away: 'COD', round: 'R32', date: '2026-07-01', time: '20:00', venue: 'Mercedes-Benz Stadium, Atlanta', result: null },
+    { id: 'r32_09', home: 'BEL', away: 'SEN', round: 'R32', date: '2026-07-01', time: '23:00', venue: 'Lumen Field, Seattle', result: null },
+    // July 2
+    { id: 'r32_10', home: 'USA', away: 'BIH', round: 'R32', date: '2026-07-02', time: '03:00', venue: "Levi's Stadium, Santa Clara", result: null },
+    { id: 'r32_11', home: 'ESP', away: 'AUT', round: 'R32', date: '2026-07-02', time: '20:00', venue: 'Hard Rock Stadium, Miami', result: null },
+    { id: 'r32_12', home: 'COL', away: 'GHA', round: 'R32', date: '2026-07-02', time: '23:00', venue: 'BMO Field, Toronto', result: null },
+    // July 3
+    { id: 'r32_13', home: 'SUI', away: 'ALG', round: 'R32', date: '2026-07-03', time: '02:00', venue: 'BC Place, Vancouver', result: null },
+    { id: 'r32_14', home: 'AUS', away: 'EGY', round: 'R32', date: '2026-07-03', time: '20:00', venue: 'AT&T Stadium, Dallas', result: null },
+    { id: 'r32_15', home: 'ARG', away: 'CPV', round: 'R32', date: '2026-07-03', time: '23:00', venue: 'Hard Rock Stadium, Miami', result: null },
+    { id: 'r32_16', home: 'POR', away: 'CRO', round: 'R32', date: '2026-07-03', time: '23:00', venue: 'Arrowhead Stadium, Kansas City', result: null },
+  ],
+  R16: [
+    // July 4–7 — teams TBD (winners from R32)
+    { id: 'r16_01', home: null, away: null, round: 'R16', date: '2026-07-04', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_01', sourceAway: 'r32_02' },
+    { id: 'r16_02', home: null, away: null, round: 'R16', date: '2026-07-04', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_03', sourceAway: 'r32_04' },
+    { id: 'r16_03', home: null, away: null, round: 'R16', date: '2026-07-05', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_05', sourceAway: 'r32_06' },
+    { id: 'r16_04', home: null, away: null, round: 'R16', date: '2026-07-05', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_07', sourceAway: 'r32_08' },
+    { id: 'r16_05', home: null, away: null, round: 'R16', date: '2026-07-06', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_09', sourceAway: 'r32_10' },
+    { id: 'r16_06', home: null, away: null, round: 'R16', date: '2026-07-06', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_11', sourceAway: 'r32_12' },
+    { id: 'r16_07', home: null, away: null, round: 'R16', date: '2026-07-07', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_13', sourceAway: 'r32_14' },
+    { id: 'r16_08', home: null, away: null, round: 'R16', date: '2026-07-07', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_15', sourceAway: 'r32_16' },
+  ],
+  QF: [
+    { id: 'qf_01', home: null, away: null, round: 'QF', date: '2026-07-09', time: '22:00', venue: 'TBD', result: null, sourceHome: 'r16_01', sourceAway: 'r16_02' },
+    { id: 'qf_02', home: null, away: null, round: 'QF', date: '2026-07-10', time: '01:00', venue: 'TBD', result: null, sourceHome: 'r16_03', sourceAway: 'r16_04' },
+    { id: 'qf_03', home: null, away: null, round: 'QF', date: '2026-07-10', time: '22:00', venue: 'TBD', result: null, sourceHome: 'r16_05', sourceAway: 'r16_06' },
+    { id: 'qf_04', home: null, away: null, round: 'QF', date: '2026-07-11', time: '01:00', venue: 'TBD', result: null, sourceHome: 'r16_07', sourceAway: 'r16_08' },
+  ],
+  SF: [
+    { id: 'sf_01', home: null, away: null, round: 'SF', date: '2026-07-13', time: '22:00', venue: 'TBD', result: null, sourceHome: 'qf_01', sourceAway: 'qf_02' },
+    { id: 'sf_02', home: null, away: null, round: 'SF', date: '2026-07-14', time: '22:00', venue: 'TBD', result: null, sourceHome: 'qf_03', sourceAway: 'qf_04' },
+  ],
+  '3RD': [
+    { id: '3rd_01', home: null, away: null, round: '3RD', date: '2026-07-18', time: '22:00', venue: 'Hard Rock Stadium, Miami', result: null, sourceHome: 'sf_01_loser', sourceAway: 'sf_02_loser' },
+  ],
+  FINAL: [
+    { id: 'final_01', home: null, away: null, round: 'FINAL', date: '2026-07-19', time: '21:00', venue: 'MetLife Stadium, New Jersey', result: null, sourceHome: 'sf_01', sourceAway: 'sf_02' },
+  ]
+};
+
+// All knockout round keys in order
+const KNOCKOUT_ROUND_KEYS = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL'];
+
+// ============================================================
+// MATCHDAY INFO (Groups + Knockout)
+// ============================================================
+const MATCHDAY_INFO = {
+  // Group stage
+  1: { name: 'الجولة الأولى', nameEn: 'Matchday 1', dateRange: '11 - 18 يونيو', deadline: '2026-06-11T17:00:00', type: 'group' },
+  2: { name: 'الجولة الثانية', nameEn: 'Matchday 2', dateRange: '18 - 24 يونيو', deadline: '2026-06-18T16:00:00', type: 'group' },
+  3: { name: 'الجولة الثالثة', nameEn: 'Matchday 3', dateRange: '24 - 28 يونيو', deadline: '2026-06-24T19:00:00', type: 'group' },
+  // Knockout stage
+  R32:   { name: 'دور الـ 32', nameEn: 'Round of 32', dateRange: '28 يونيو - 3 يوليو', deadline: '2026-06-28T19:00:00', type: 'knockout', icon: '⚔️' },
+  R16:   { name: 'دور الـ 16', nameEn: 'Round of 16', dateRange: '4 - 7 يوليو', deadline: '2026-07-04T17:00:00', type: 'knockout', icon: '🔥' },
+  QF:    { name: 'ربع النهائي', nameEn: 'Quarter-finals', dateRange: '9 - 11 يوليو', deadline: '2026-07-09T19:00:00', type: 'knockout', icon: '🏅' },
+  SF:    { name: 'نصف النهائي', nameEn: 'Semi-finals', dateRange: '13 - 14 يوليو', deadline: '2026-07-13T19:00:00', type: 'knockout', icon: '⭐' },
+  '3RD': { name: 'المركز الثالث', nameEn: 'Third Place', dateRange: '18 يوليو', deadline: '2026-07-18T19:00:00', type: 'knockout', icon: '🥉' },
+  FINAL: { name: 'النهائي', nameEn: 'Final', dateRange: '19 يوليو', deadline: '2026-07-19T18:00:00', type: 'knockout', icon: '🏆' },
+};
+
+// Helper: get all matchday keys (group + knockout) in order
+const ALL_MATCHDAY_KEYS = [1, 2, 3, 'R32', 'R16', 'QF', 'SF', '3RD', 'FINAL'];
+
+// Helper: get matches for any matchday key (group or knockout)
+function getMatchesForMD(mdKey) {
+  if (typeof mdKey === 'number') return MATCHES[mdKey] || [];
+  return KNOCKOUT_MATCHES[mdKey] || [];
+}
+
+// Helper: check if a matchday key is knockout
+function isKnockoutMD(mdKey) {
+  return typeof mdKey === 'string';
+}
+
+// Helper: get knockout multiplier for a matchday
+function getKnockoutMultiplier(mdKey) {
+  if (typeof mdKey === 'number') return 1; // group stage = ×1
+  return KNOCKOUT_MULTIPLIERS[mdKey] || 1;
+}
+
+// Helper: get display label for a knockout match team (handles null/TBD)
+function getKnockoutTeamLabel(teamCode, match) {
+  if (teamCode && TEAMS[teamCode]) return TEAMS[teamCode].name;
+  // For future rounds, show source info
+  if (!teamCode) {
+    if (match.sourceHome || match.sourceAway) return '—';
+    return 'يُحدد لاحقاً';
+  }
+  return teamCode; // Fallback for placeholder codes
+}
+
+// ============================================================
+// AVATAR OPTIONS
+// ============================================================
 const AVATARS = [
   'img/avatars/1.jpeg',
   'img/avatars/2.jpeg',
