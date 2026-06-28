@@ -764,9 +764,26 @@ async function renderKnockout(roundKey) {
     let comparisonHTML = '';
     if (result && hasPred) {
       let pts = calcPts(p, result);
-      if (isGolden) pts *= 2;
       const level = calcPtsLevel(p, result);
       const levelLabels = { exact: 'توقع دقيق 🎯', diff: 'فرق أهداف صحيح', correct: 'اتجاه صحيح', wrong: 'خطأ ✗' };
+      
+      // Penalty winner bonus for knockout
+      let penPts = 0;
+      let penHTML = '';
+      if (result.penaltyWinner && p.penaltyWinner) {
+        if (p.penaltyWinner === result.penaltyWinner) {
+          penPts = 3;
+          penHTML = `<div class="m-pen-result correct">🏆 الترجيح صح! <strong>+3</strong></div>`;
+        } else {
+          penHTML = `<div class="m-pen-result wrong">🏆 الترجيح خطأ</div>`;
+        }
+      } else if (result.penaltyWinner && !p.penaltyWinner && level === 'diff') {
+        penHTML = `<div class="m-pen-result wrong">🏆 لم تتوقع الفائز بالترجيح</div>`;
+      }
+      
+      pts += penPts;
+      if (isGolden) pts *= 2;
+      
       comparisonHTML = `
         <div class="m-comparison">
           <div class="m-comp-row">
@@ -774,6 +791,7 @@ async function renderKnockout(roundKey) {
             <div class="m-comp-vs-icon">⚡</div>
             <div class="m-comp-item"><span class="m-comp-label">النتيجة</span><span class="m-comp-score actual-score">${result.home} - ${result.away}</span></div>
           </div>
+          ${penHTML}
           <div class="m-pts-badge ${level}">
             <span class="m-pts-label">${levelLabels[level]}</span>
             ${pts > 0 ? `<span class="m-pts-val">+${pts}</span>` : ''}
@@ -815,11 +833,19 @@ async function renderKnockout(roundKey) {
           </div>
           ${(!isLocked && !isTBD) ? `<div class="m-pred">
             <label>توقعك:</label>
-            <input type="number" class="pred-input" id="ph-${match.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}">
+            <input type="number" class="pred-input ko-pred-h" id="ph-${match.id}" min="0" max="20" placeholder="-" value="${p.h !== undefined ? p.h : ''}" data-mid="${match.id}">
             <span class="pred-dash">-</span>
-            <input type="number" class="pred-input" id="pa-${match.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}">
+            <input type="number" class="pred-input ko-pred-a" id="pa-${match.id}" min="0" max="20" placeholder="-" value="${p.a !== undefined ? p.a : ''}" data-mid="${match.id}">
+          </div>
+          <div class="pen-winner-wrap" id="pen-wrap-${match.id}" style="display:${(p.h !== undefined && p.a !== undefined && +p.h === +p.a) ? 'block' : 'none'}">
+            <div class="pen-label">🏆 الفائز بركلات الترجيح:</div>
+            <div class="pen-btns">
+              <button class="pen-btn ${p.penaltyWinner === 'home' ? 'active' : ''}" data-mid="${match.id}" data-side="home">${homeName}</button>
+              <button class="pen-btn ${p.penaltyWinner === 'away' ? 'active' : ''}" data-mid="${match.id}" data-side="away">${awayName}</button>
+            </div>
           </div>` : ''}
           ${predDisplay}
+          ${(isLocked && hasPred && !result && p.penaltyWinner) ? `<div class="pen-saved">🏆 الترجيح: <strong>${p.penaltyWinner === 'home' ? homeName : awayName}</strong></div>` : ''}
           ${comparisonHTML}
           ${isGolden ? '<div class="golden-label">★ مباراة ذهبية — النقاط ×2</div>' : ''}
           ${match.venue ? `<div class="m-venue">📍 ${match.venue}</div>` : ''}
@@ -852,6 +878,34 @@ async function renderKnockout(roundKey) {
           body.appendChild(lbl);
         }
       }
+    });
+  });
+
+  // Penalty winner: show/hide on input change
+  grid.querySelectorAll('.ko-pred-h, .ko-pred-a').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const mid = inp.dataset.mid;
+      const hEl = document.getElementById('ph-' + mid);
+      const aEl = document.getElementById('pa-' + mid);
+      const wrap = document.getElementById('pen-wrap-' + mid);
+      if (!hEl || !aEl || !wrap) return;
+      const h = hEl.value, a = aEl.value;
+      if (h !== '' && a !== '' && +h === +a) {
+        wrap.style.display = 'block';
+      } else {
+        wrap.style.display = 'none';
+      }
+    });
+  });
+
+  // Penalty winner button click
+  grid.querySelectorAll('.pen-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mid = btn.dataset.mid;
+      const wrap = document.getElementById('pen-wrap-' + mid);
+      if (!wrap) return;
+      wrap.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
     });
   });
 
@@ -927,7 +981,14 @@ async function saveKnockoutPreds(roundKey) {
     const hEl = document.getElementById('ph-' + m.id);
     const aEl = document.getElementById('pa-' + m.id);
     if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
-      preds[m.id] = { h: +hEl.value, a: +aEl.value };
+      const h = +hEl.value, a = +aEl.value;
+      const predObj = { h, a };
+      // If draw, save penalty winner
+      if (h === a) {
+        const activeBtn = document.querySelector(`#pen-wrap-${m.id} .pen-btn.active`);
+        if (activeBtn) predObj.penaltyWinner = activeBtn.dataset.side;
+      }
+      preds[m.id] = predObj;
     }
   });
 
@@ -1066,6 +1127,12 @@ async function renderLeague() {
         let pts = calcPts(pred, result);
         const level = calcPtsLevel(pred, result);
         pts = Math.round(pts * multiplier);
+        
+        // Penalty winner bonus for knockout
+        if (result.penaltyWinner && pred.penaltyWinner && pred.penaltyWinner === result.penaltyWinner) {
+          pts += 3;
+        }
+        
         if (matchId === golden) pts *= 2;
 
         if (level === 'exact') { exact++; mdExact++; }
@@ -1585,6 +1652,14 @@ async function renderProfile(uid, reqId) {
         pts = calcPts(pred, result);
         level = calcPtsLevel(pred, result);
         pts = Math.round(pts * multiplier);
+        
+        // Penalty winner bonus for knockout matches
+        let penPts = 0;
+        if (result.penaltyWinner && pred.penaltyWinner && pred.penaltyWinner === result.penaltyWinner) {
+          penPts = 3;
+          pts += penPts;
+        }
+        
         if (isGolden) pts *= 2;
         if (level === 'exact') exactCount++;
         else if (level === 'diff') diffCount++;

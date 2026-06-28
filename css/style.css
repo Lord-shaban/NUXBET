@@ -629,6 +629,7 @@ input, select { font-family: inherit; outline: none; }
 .pt-row.diff { color: var(--orange); }
 .pt-row.bonus { color: var(--pl-violet); }
 .pt-row.penalty { color: var(--red); }
+.pt-row.penalty-row { color: #e06020; }
 .pt-row.question { color: var(--pl-violet); }
 
 /* ============================================================
@@ -654,6 +655,49 @@ input, select { font-family: inherit; outline: none; }
   font-size: 0.72rem; font-weight: 700; color: var(--gold);
   padding: 5px 12px; background: var(--gold-soft); border-radius: var(--r-pill);
 }
+
+/* Penalty Winner Selector */
+.pen-winner-wrap {
+  margin-top: 8px; padding: 8px 10px;
+  background: rgba(150,60,255,0.06); border: 1px solid rgba(150,60,255,0.12);
+  border-radius: 10px; animation: fadeSlide .3s ease;
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pen-label {
+  font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+  text-align: center; margin-bottom: 6px;
+}
+.pen-btns {
+  display: flex; gap: 6px; justify-content: center;
+}
+.pen-btn {
+  flex: 1; max-width: 140px; padding: 6px 10px;
+  border-radius: 8px; border: 1.5px solid rgba(150,60,255,0.15);
+  background: rgba(13,1,24,0.5); color: var(--text-muted);
+  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.pen-btn:hover { border-color: rgba(150,60,255,0.3); color: var(--text-primary); }
+.pen-btn.active {
+  background: rgba(0,255,135,0.08); border-color: var(--green);
+  color: var(--green); font-weight: 700;
+  box-shadow: 0 0 8px rgba(0,255,135,0.1);
+}
+.pen-saved {
+  text-align: center; font-size: 0.72rem; color: var(--text-muted);
+  margin-top: 6px; padding: 4px 8px;
+  background: rgba(150,60,255,0.06); border-radius: 8px;
+}
+.pen-saved strong { color: var(--green); }
+.m-pen-result {
+  text-align: center; font-size: 0.72rem; font-weight: 600;
+  padding: 4px 10px; border-radius: 8px; margin-top: 6px;
+}
+.m-pen-result.correct { color: var(--green); background: rgba(0,255,135,0.06); }
+.m-pen-result.wrong { color: var(--red); background: rgba(255,60,80,0.06); }
 .golden-info {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 18px; margin-bottom: 16px;
