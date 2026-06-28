@@ -1794,7 +1794,6 @@ input, select { font-family: inherit; outline: none; }
 
   .mob-nav-btn svg {
     width: 17px; height: 17px;
-    stroke: rgba(255,255,255,0.3);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     stroke-width: 1.8;
   }
@@ -1804,19 +1803,16 @@ input, select { font-family: inherit; outline: none; }
     letter-spacing: -0.2px;
   }
 
-  /* Active state */
+  /* Active state — use color to control currentColor in SVG */
   .mob-nav-btn.active {
-    color: #fff;
-    background: rgba(233, 0, 82, 0.08);
-  }
-  .mob-nav-btn.active svg {
-    stroke: var(--pink);
+    color: var(--pink);
+    background: rgba(233, 0, 82, 0.1);
   }
   .mob-nav-btn.active span {
-    color: var(--pink);
     font-weight: 700;
     font-size: 0.52rem;
   }
+
 
   /* Active dot indicator */
   .mob-nav-btn.active::after {

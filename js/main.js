@@ -161,7 +161,7 @@ function onAuth(user) {
     header.style.display = ''; main.style.display = ''; footer.style.display = '';
     document.getElementById('mobile-nav').style.display = '';
     loadUserData(user.uid);
-    go('knockout');
+    go('home');
   } else {
     overlay.style.display = 'flex';
     header.style.display = 'none'; main.style.display = 'none'; footer.style.display = 'none';
