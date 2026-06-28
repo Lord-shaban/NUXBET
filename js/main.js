@@ -159,11 +159,13 @@ function onAuth(user) {
   if (user) {
     overlay.style.display = 'none';
     header.style.display = ''; main.style.display = ''; footer.style.display = '';
+    document.getElementById('mobile-nav').style.display = '';
     loadUserData(user.uid);
     go('knockout');
   } else {
     overlay.style.display = 'flex';
     header.style.display = 'none'; main.style.display = 'none'; footer.style.display = 'none';
+    document.getElementById('mobile-nav').style.display = 'none';
     currentUserData = null;
     buildAvatarGrid();
   }
@@ -206,7 +208,10 @@ async function loadAllUsers() {
 // ============================================================
 function go(page) {
   activePage = page;
+  // Sync desktop nav
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  // Sync mobile nav
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
@@ -1678,6 +1683,9 @@ function init() {
   document.getElementById('reg-pass')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => go(btn.dataset.page));
+  });
+  document.querySelectorAll('.mob-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => go(btn.dataset.page));
   });
   document.getElementById('header-profile-link')?.addEventListener('click', () => {
