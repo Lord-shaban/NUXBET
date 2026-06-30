@@ -31,6 +31,16 @@
     .score-box input:focus { border-color: var(--green); box-shadow: 0 0 8px rgba(0,255,135,0.1); }
     .score-box .dash { color: var(--text-dim); font-weight: 700; font-size: 0.9rem; }
 
+    /* Penalty winner selector for knockout draws */
+    .pen-winner-row { display: none; width: 100%; margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, rgba(232,185,35,0.06), rgba(233,0,82,0.04)); border: 1px solid rgba(232,185,35,0.2); border-radius: 10px; }
+    .pen-winner-row.show { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .pen-winner-row .pen-label { font-size: 0.72rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
+    .pen-winner-row .pen-btns { display: flex; gap: 4px; flex: 1; }
+    .pen-winner-row .pen-btn { flex: 1; padding: 6px 10px; font-size: 0.72rem; font-weight: 700; border-radius: 8px; border: 1.5px solid var(--border-base); background: var(--bg-input); color: var(--text-dim); cursor: pointer; transition: all 0.2s; text-align: center; }
+    .pen-winner-row .pen-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .pen-winner-row .pen-btn.active { background: rgba(232,185,35,0.15); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 8px rgba(232,185,35,0.15); }
+    .match-row.has-penalty { border-right-color: var(--gold) !important; }
+
     .rq-section { background: linear-gradient(135deg, rgba(150,60,255,0.06), rgba(233,0,82,0.03)); }
     .rq-input-field { width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1.5px solid rgba(150,60,255,0.15); border-radius: 10px; color: var(--text-primary); font-size: 0.88rem; margin-top: 6px; }
     .rq-input-field:focus { border-color: var(--pl-violet); box-shadow: 0 0 10px rgba(150,60,255,0.08); }
@@ -265,25 +275,64 @@
             const awayTeam = m.away && TEAMS[m.away] ? TEAMS[m.away] : null;
             const r = saved[m.id] || m.result || {};
             const hasResult = r.home !== undefined && r.away !== undefined;
+            const isDraw = hasResult && +r.home === +r.away;
+            const hasPenalty = r.penaltyWinner !== undefined && r.penaltyWinner !== null;
             const isTBD = !homeTeam || !awayTeam;
             const homeName = homeTeam ? homeTeam.name : 'يُحدد لاحقاً';
             const awayName = awayTeam ? awayTeam.name : 'يُحدد لاحقاً';
             const homeFlag = homeTeam ? `<img src="${flagUrl(homeTeam.iso)}" class="flag-sm" alt="">` : '<span style="font-size:1.2rem">❓</span>';
             const awayFlag = awayTeam ? `<img src="${flagUrl(awayTeam.iso)}" class="flag-sm" alt="">` : '<span style="font-size:1.2rem">❓</span>';
-            return `<div class="match-row ${hasResult ? 'has-result' : ''}" ${isTBD ? 'style="opacity:0.5"' : ''}>
+            return `<div class="match-row ${hasResult ? 'has-result' : ''} ${hasPenalty ? 'has-penalty' : ''}" ${isTBD ? 'style="opacity:0.5"' : ''}>
               <span class="group-tag" style="background:rgba(150,60,255,0.08);color:var(--pl-violet)">${roundInfo.short}</span>
               ${homeFlag}
               <span class="team-names">${homeName} vs ${awayName}</span>
               ${awayFlag}
               <span class="date-tag">${formatMatchDate(m.date)} - ${m.time}</span>
               <div class="score-box">
-                <input type="number" id="rh-${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
+                <input type="number" class="ko-score-input" id="rh-${m.id}" data-mid="${m.id}" min="0" max="20" value="${r.home !== undefined ? r.home : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
                 <span class="dash">-</span>
-                <input type="number" id="ra-${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
+                <input type="number" class="ko-score-input" id="ra-${m.id}" data-mid="${m.id}" min="0" max="20" value="${r.away !== undefined ? r.away : ''}" placeholder="-" ${isTBD ? 'disabled' : ''}>
               </div>
-              <span class="result-status">${hasResult ? '✅' : isTBD ? '🔒' : '⏳'}</span>
+              <span class="result-status">${hasResult ? (hasPenalty ? '🏆' : '✅') : isTBD ? '🔒' : '⏳'}</span>
+              <div class="pen-winner-row ${isDraw ? 'show' : ''}" id="pen-row-${m.id}">
+                <span class="pen-label">🏆 الفائز بركلات الترجيح:</span>
+                <div class="pen-btns">
+                  <button class="pen-btn ${r.penaltyWinner === 'home' ? 'active' : ''}" data-mid="${m.id}" data-side="home" ${isTBD ? 'disabled' : ''}>${homeName}</button>
+                  <button class="pen-btn ${r.penaltyWinner === 'away' ? 'active' : ''}" data-mid="${m.id}" data-side="away" ${isTBD ? 'disabled' : ''}>${awayName}</button>
+                </div>
+              </div>
             </div>`;
           }).join('');
+
+        // Attach input listeners for dynamic penalty row show/hide
+        el.querySelectorAll('.ko-score-input').forEach(inp => {
+          inp.addEventListener('input', () => {
+            const mid = inp.dataset.mid;
+            const hEl = document.getElementById('rh-' + mid);
+            const aEl = document.getElementById('ra-' + mid);
+            const penRow = document.getElementById('pen-row-' + mid);
+            if (!hEl || !aEl || !penRow) return;
+            const h = hEl.value, a = aEl.value;
+            if (h !== '' && a !== '' && +h === +a) {
+              penRow.classList.add('show');
+            } else {
+              penRow.classList.remove('show');
+              // Clear penalty selection if not a draw
+              penRow.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+            }
+          });
+        });
+
+        // Attach penalty button click handlers
+        el.querySelectorAll('.pen-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const mid = btn.dataset.mid;
+            const penRow = document.getElementById('pen-row-' + mid);
+            if (!penRow) return;
+            penRow.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+          });
+        });
       } else {
         // Group stage matches
         el.innerHTML = matches.map(m => {
@@ -396,7 +445,18 @@
         const hEl = document.getElementById('rh-' + m.id);
         const aEl = document.getElementById('ra-' + m.id);
         if (hEl && aEl && hEl.value !== '' && aEl.value !== '' && !hEl.disabled) {
-          results[m.id] = { home: +hEl.value, away: +aEl.value };
+          const resultObj = { home: +hEl.value, away: +aEl.value };
+          // For knockout draws, save penalty winner
+          if (isKO(activeMD) && +hEl.value === +aEl.value) {
+            const penRow = document.getElementById('pen-row-' + m.id);
+            if (penRow) {
+              const activeBtn = penRow.querySelector('.pen-btn.active');
+              if (activeBtn) {
+                resultObj.penaltyWinner = activeBtn.dataset.side;
+              }
+            }
+          }
+          results[m.id] = resultObj;
         }
       });
 
