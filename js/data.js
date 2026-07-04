@@ -223,15 +223,14 @@ const KNOCKOUT_MATCHES = {
     { id: 'r32_16', home: 'POR', away: 'CRO', round: 'R32', date: '2026-07-03', time: '23:00', venue: 'Arrowhead Stadium, Kansas City', result: null },
   ],
   R16: [
-    // July 4–7 — teams TBD (winners from R32)
-    { id: 'r16_01', home: null, away: null, round: 'R16', date: '2026-07-04', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_01', sourceAway: 'r32_02' },
-    { id: 'r16_02', home: null, away: null, round: 'R16', date: '2026-07-04', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_03', sourceAway: 'r32_04' },
-    { id: 'r16_03', home: null, away: null, round: 'R16', date: '2026-07-05', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_05', sourceAway: 'r32_06' },
-    { id: 'r16_04', home: null, away: null, round: 'R16', date: '2026-07-05', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_07', sourceAway: 'r32_08' },
-    { id: 'r16_05', home: null, away: null, round: 'R16', date: '2026-07-06', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_09', sourceAway: 'r32_10' },
-    { id: 'r16_06', home: null, away: null, round: 'R16', date: '2026-07-06', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_11', sourceAway: 'r32_12' },
-    { id: 'r16_07', home: null, away: null, round: 'R16', date: '2026-07-07', time: '20:00', venue: 'TBD', result: null, sourceHome: 'r32_13', sourceAway: 'r32_14' },
-    { id: 'r16_08', home: null, away: null, round: 'R16', date: '2026-07-07', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r32_15', sourceAway: 'r32_16' },
+    { id: 'r16_01', home: 'CAN', away: 'MAR', round: 'R16', date: '2026-07-04', time: '20:00', venue: 'هيوستن', result: null, sourceHome: 'r32_01', sourceAway: 'r32_02' },
+    { id: 'r16_02', home: 'PAR', away: 'FRA', round: 'R16', date: '2026-07-05', time: '00:00', venue: 'فيلادلفيا', result: null, sourceHome: 'r32_03', sourceAway: 'r32_04' },
+    { id: 'r16_03', home: 'BRA', away: 'NOR', round: 'R16', date: '2026-07-05', time: '23:00', venue: 'نيويورك/نيوجيرسي', result: null, sourceHome: 'r32_05', sourceAway: 'r32_06' },
+    { id: 'r16_04', home: 'MEX', away: 'ENG', round: 'R16', date: '2026-07-06', time: '03:00', venue: 'مكسيكو سيتي', result: null, sourceHome: 'r32_07', sourceAway: 'r32_08' },
+    { id: 'r16_05', home: 'POR', away: 'ESP', round: 'R16', date: '2026-07-06', time: '22:00', venue: 'دالاس', result: null, sourceHome: 'r32_09', sourceAway: 'r32_10' },
+    { id: 'r16_06', home: 'USA', away: 'BEL', round: 'R16', date: '2026-07-07', time: '03:00', venue: 'سياتل', result: null, sourceHome: 'r32_11', sourceAway: 'r32_12' },
+    { id: 'r16_07', home: 'ARG', away: 'EGY', round: 'R16', date: '2026-07-07', time: '19:00', venue: 'أتلانتا', result: null, sourceHome: 'r32_13', sourceAway: 'r32_14' },
+    { id: 'r16_08', home: 'SUI', away: 'COL', round: 'R16', date: '2026-07-07', time: '23:00', venue: 'فانكوفر', result: null, sourceHome: 'r32_15', sourceAway: 'r32_16' },
   ],
   QF: [
     { id: 'qf_01', home: null, away: null, round: 'QF', date: '2026-07-09', time: '22:00', venue: 'TBD', result: null, sourceHome: 'r16_01', sourceAway: 'r16_02' },
