@@ -236,7 +236,7 @@ const KNOCKOUT_MATCHES = {
     { id: 'qf_01', home: 'MAR', away: 'FRA', round: 'QF', date: '2026-07-09', time: '23:00', venue: 'TBD', result: null, sourceHome: 'r16_01', sourceAway: 'r16_02' },
     { id: 'qf_02', home: 'NOR', away: 'ENG', round: 'QF', date: '2026-07-12', time: '00:00', venue: 'TBD', result: null, sourceHome: 'r16_03', sourceAway: 'r16_04' },
     { id: 'qf_03', home: 'ESP', away: 'BEL', round: 'QF', date: '2026-07-10', time: '22:00', venue: 'TBD', result: null, sourceHome: 'r16_05', sourceAway: 'r16_06' },
-    { id: 'qf_04', home: 'ARG', away: 'SUI', round: 'QF', date: '2026-07-12', time: '04:00', venue: 'TBD', result: null, sourceHome: 'r16_07', sourceAway: 'r16_08' },
+    { id: 'qf_04', home: 'EGY', away: 'SUI', round: 'QF', date: '2026-07-12', time: '04:00', venue: 'TBD', result: null, sourceHome: 'r16_07', sourceAway: 'r16_08' },
   ],
   SF: [
     { id: 'sf_01', home: null, away: null, round: 'SF', date: '2026-07-13', time: '22:00', venue: 'TBD', result: null, sourceHome: 'qf_01', sourceAway: 'qf_02' },
